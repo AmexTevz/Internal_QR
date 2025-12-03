@@ -20,8 +20,10 @@ def get_session_data(file_path: str) -> Dict[str, Any]:
     with open(file_path, 'r') as f:
         return json.load(f)
 
+
 def get_session_value(file_path: str, key: str, default=None):
     return get_session_data(file_path).get(key, default)
+
 
 def attach_session_data_json(session_data_path, name="session_data.json after update"):
     with open(session_data_path, "r") as f:
@@ -30,6 +32,8 @@ def attach_session_data_json(session_data_path, name="session_data.json after up
             name=name,
             attachment_type=allure.attachment_type.JSON
         )
+
+
 def attach_note(note_text, name="Note"):
     allure.attach(
         note_text,
@@ -37,17 +41,30 @@ def attach_note(note_text, name="Note"):
         attachment_type=allure.attachment_type.TEXT
     )
 
+
 def menu_item_number():
     return random.randint(2, 5)
 
 
-# ============================================================================
-# SINGLE TABLE - Just change table=NUMBER
-# ============================================================================
+
+TABLES = [7,8]
+
+
+@pytest.mark.parametrize("table", TABLES)
 @pytest.mark.test_run
 @allure.feature("Checkout Flow")
-def test_checkout(browser_factory, endpoint_setup, table=8):
+@allure.title("Single Payment Checkout Test - Parallel Execution")
+def test_checkout_parallel(browser_factory, endpoint_setup, table):
+    """
+    This test runs on ALL tables in TABLES list simultaneously.
 
+    To run:
+        pip install pytest-xdist  (one time only)
+        pytest test.py -n 6       (6 workers = 6 tables at once)
+
+    To change tables:
+        Edit TABLES list at top of file
+    """
     SESSION_DATA_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'data', 'endpoints',
                                      'session_data.json')
 
@@ -59,7 +76,7 @@ def test_checkout(browser_factory, endpoint_setup, table=8):
             with allure.step("Navigate to main menu"):
                 menu_page.navigate_to_main_menu()
                 menu_page.select_random_menu_items(5)
-                time.sleep(5)
+                close_table()
 
     except Exception as e:
         with allure.step("ERROR"):
