@@ -1,0 +1,15 @@
+{
+  "session_id": "c67a2919-1134-43ac-9190-7ce0e5688eaf",
+  "transaction_guid": "1797-66259738",
+  "transaction_number": "1797",
+  "amount_due_total": 0.0,
+  "subtotal": 0.0,
+  "tax": 0.0,
+  "auto_service_charge": 0.0,
+  "table_number": 8,
+  "property_id": "33",
+  "revenue_center_id": "810",
+  "client_id": "3289FE1A-A4CA-49DC-9CDF-C2831781E850",
+  "subscription_key": "bf837e849a7948308c103d08c3b731ce",
+  "base_url": "https://digitalmwqa.azure-api.net"
+}
