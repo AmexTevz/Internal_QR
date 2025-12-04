@@ -1,52 +1,82 @@
+"""
+Logger - Console output only, no file creation
+Compatible with existing imports: from src.utils.logger import Logger
+"""
+
 import logging
-import os
-from datetime import datetime
+import sys
+
 
 class Logger:
+    """
+    Logger class that prints to console only.
+    No log files created!
+
+    Usage:
+        from src.utils.logger import Logger
+
+        logger = Logger(__name__)
+        logger.info("This goes to console only")
+        logger.error("No files created!")
+    """
+
     def __init__(self, name):
+        """
+        Initialize logger.
+
+        Args:
+            name: Logger name (usually __name__)
+        """
         self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.DEBUG)
 
-        # Only add handlers if they haven't been added already
+        # Only configure if not already configured
         if not self.logger.handlers:
-            # Create logs directory if it doesn't exist
-            log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
-            if not os.path.exists(log_dir):
-                os.makedirs(log_dir)
+            self.logger.setLevel(logging.DEBUG)
 
-            # Create a file handler for writing logs to a file
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            log_file = os.path.join(log_dir, f'{name}_{timestamp}.log')
-            file_handler = logging.FileHandler(log_file)
-            file_handler.setLevel(logging.DEBUG)
-
-            # Create a console handler for printing logs to console
-            console_handler = logging.StreamHandler()
+            # Console handler only (no file handler!)
+            console_handler = logging.StreamHandler(sys.stdout)
             console_handler.setLevel(logging.DEBUG)
 
-            # Create a formatter and add it to the handlers
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            file_handler.setFormatter(formatter)
+            # Format
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
             console_handler.setFormatter(formatter)
 
-            # Add the handlers to the logger
-            self.logger.addHandler(file_handler)
+            # Add only console handler - NO FILE HANDLER!
             self.logger.addHandler(console_handler)
 
     def debug(self, message):
+        """Log debug message to console"""
         self.logger.debug(message)
 
     def info(self, message):
+        """Log info message to console"""
         self.logger.info(message)
 
     def warning(self, message):
+        """Log warning message to console"""
         self.logger.warning(message)
 
     def error(self, message):
+        """Log error message to console"""
         self.logger.error(message)
 
     def critical(self, message):
+        """Log critical message to console"""
         self.logger.critical(message)
 
-    def exception(self, message):
-        self.logger.exception(message)
+
+# Alternative: function-based (if needed)
+def get_logger(name):
+    """
+    Get logger instance.
+
+    Args:
+        name: Logger name
+
+    Returns:
+        Logger instance
+    """
+    return Logger(name)
