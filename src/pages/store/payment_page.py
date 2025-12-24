@@ -1,9 +1,9 @@
 import time
 import allure
 from selenium.common import TimeoutException
-from src.pages.base_page import BasePage, wait_for_loader
+from src.pages.base_page import BasePage
 from src.utils.credit_card import generate_customer
-from src.locators.store_locators import FreedomPayLocators, MenuContents
+from src.locators.store_locators import FreedomPayLocators
 from src.data.endpoints.get_details import get_check_details
 from src.utils.logger import Logger
 
@@ -14,15 +14,15 @@ class PaymentPage(BasePage):
         self.logger = Logger("PaymentPage")
 
 
-    @allure.step("Place the order as '{fullname}'")
-    def place_the_order(self, fullname):
+    @allure.step("Place the order")
+    def make_the_payment(self):
         self.switch_to_frame(FreedomPayLocators.IFRAME)
         if self.is_element_present(FreedomPayLocators.POSTAL_CODE, timeout=10):
             self.switch_to_default_content()
             try:
                 card_data = generate_customer()
                 time.sleep(1)
-                self.send_keys(FreedomPayLocators.CARD_HOLDER_NAME,fullname)
+                self.send_keys(FreedomPayLocators.CARD_HOLDER_NAME,card_data['fullname'])
                 self.switch_to_frame(FreedomPayLocators.IFRAME)
                 self.send_keys(FreedomPayLocators.CARD_NUMBER, card_data['number'])
                 self.send_keys(FreedomPayLocators.CARD_DATE, card_data['exp'])
@@ -31,12 +31,8 @@ class PaymentPage(BasePage):
                 self.attach_screenshot("After filling the card info")
                 self.switch_to_default_content()
                 self.click(FreedomPayLocators.MAKE_PAYMENT)
+                self.attach_screenshot("After clicking the payment button")
 
-
-                # Update session data after order is placed
-                success, result = get_check_details()
-                if not success:
-                    self.logger.error(f"Failed to update session data after placing order: {result}")
 
 
             except TimeoutException:

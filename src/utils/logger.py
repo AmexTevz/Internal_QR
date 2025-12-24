@@ -67,6 +67,9 @@ class Logger:
         """Log critical message to console"""
         self.logger.critical(message)
 
+    def exception(self, param):
+        pass
+
 
 # Alternative: function-based (if needed)
 def get_logger(name):

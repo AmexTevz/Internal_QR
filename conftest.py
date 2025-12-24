@@ -79,12 +79,12 @@ def browser_factory(endpoint_setup):
             if browser_type.lower() == "chrome":
                 options = ChromeOptions()
                 # options.add_argument("--headless")
-                options.add_argument("--window-size=1920,1080")
+                # options.add_argument("--window-size=800,600")
                 options.add_argument("--incognito")
-                options.add_argument("--disable-notifications")
-                options.add_argument("--disable-popup-blocking")
-                options.add_argument("--disable-infobars")
-                options.add_argument("--disable-extensions")
+                # options.add_argument("--disable-notifications")
+                # options.add_argument("--disable-popup-blocking")
+                # options.add_argument("--disable-infobars")
+                # options.add_argument("--disable-extensions")
                 options.add_argument("--disable-gpu")
                 options.add_argument("--no-sandbox")
                 options.add_argument("--disable-dev-shm-usage")
@@ -93,8 +93,8 @@ def browser_factory(endpoint_setup):
                 options.add_argument("--silent")
                 options.add_argument("--disable-logging")
                 options.add_argument(f"--user-data-dir=/tmp/chrome_test_{id(options)}")
-                options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
-                options.add_experimental_option("useAutomationExtension", False)
+                # options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
+                # options.add_experimental_option("useAutomationExtension", False)
 
                 # ← NEW: Enable console logging for monitoring
                 options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
@@ -102,29 +102,32 @@ def browser_factory(endpoint_setup):
                 service = ChromeService(ChromeDriverManager().install())
                 driver = webdriver.Chrome(service=service, options=options)
 
-            elif browser_type.lower() == "firefox":
-                options = webdriver.FirefoxOptions()
-                options.set_preference("dom.webdriver.enabled", False)
-                options.set_preference('useAutomationExtension', False)
-                service = FirefoxService(GeckoDriverManager().install())
-                driver = webdriver.Firefox(service=service, options=options)
+
 
             elif browser_type.lower() == "edge":
+
                 options = webdriver.EdgeOptions()
+
                 options.add_argument("--disable-blink-features=AutomationControlled")
+
+                options.add_argument(f"--user-data-dir=/tmp/edge_test_{id(options)}")
+
                 options.add_experimental_option("excludeSwitches", ["enable-automation"])
+
                 options.add_experimental_option('useAutomationExtension', False)
 
-                # ← NEW: Enable console logging for monitoring
                 options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
 
+                # ADD THESE MISSING LINES:
+
                 service = EdgeService(EdgeChromiumDriverManager().install())
+
                 driver = webdriver.Edge(service=service, options=options)
 
             else:
                 raise ValueError(f"Unsupported browser type: {browser_type}")
 
-            driver.maximize_window()
+
 
             # Navigate to table URL
             Navigation.navigate(driver, api_setup.session_id, api_setup.table_num)
@@ -136,10 +139,10 @@ def browser_factory(endpoint_setup):
     yield _create_browsers
 
 
-    for driver in drivers:
+    for drv in drivers:
         try:
             with allure.step("🔍 Automatic Console Safety Check"):
-                monitor = ConsoleMonitor(driver)
+                monitor = ConsoleMonitor(drv)
                 results = monitor.check_all()
 
                 # Report to Allure
@@ -173,8 +176,8 @@ def browser_factory(endpoint_setup):
         except Exception as e:
             print(f"Warning: Could not perform console check: {str(e)}")
 
-    for driver in drivers:
+    for drv in drivers:
         try:
-            driver.quit()
+            drv.quit()
         except Exception as e:
             print(f"Error closing browser: {str(e)}")

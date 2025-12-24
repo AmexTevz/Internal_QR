@@ -2,7 +2,6 @@ import pytest
 import requests
 import json
 from selenium.webdriver.support.ui import WebDriverWait
-from src.locators.store_locators import CommonLocators
 from src.pages.base_page import BasePage
 from src.data.table_config import get_table_url, DEFAULT_TABLE_NUMBER
 
