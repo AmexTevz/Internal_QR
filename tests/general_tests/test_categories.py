@@ -5,7 +5,7 @@ from datetime import datetime, time as dt_time
 from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.get_menu import get_menu_categories, get_active_categories, get_full_menu
 from src.data.endpoints.close_table import close_table
-
+from datetime import datetime
 
 def attach_note(note_text, name="Note"):
     allure.attach(
@@ -55,14 +55,17 @@ def category_has_available_items(category_id, menu_data):
     return False
 
 
-TABLES = [7]
+TABLES = [4]
 
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.categories
+@pytest.mark.all
 @allure.feature("Categories")
 @allure.title("Category Navigation and API Verification")
 def test_category_navigation_and_api_verification(browser_factory, endpoint_setup, table):
+    timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
+    allure.dynamic.title(f"Category Navigation and API Verification - {timestamp}")
     [chrome] = browser_factory("chrome")
     menu_page = MenuPage(chrome)
 

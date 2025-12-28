@@ -4,7 +4,7 @@ import allure
 from src.data.endpoints.get_details import get_check_details
 from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.close_table import close_table
-
+from datetime import datetime
 
 
 def attach_note(note_text, name="Note"):
@@ -47,11 +47,13 @@ TABLES = [2]
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.badge
 @pytest.mark.functional
+@pytest.mark.all
 @allure.feature("Menu")
 @allure.story("Cart Badges")  # Optional - sub-category
 @allure.title("Verify Item and Cart Badges Update Correctly")
 def test_badges(browser_factory, endpoint_setup, table):
-
+    timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
+    allure.dynamic.title(f"Verify Item and Cart Badges Update Correctly - {timestamp}")
     [chrome] = browser_factory("chrome")
     menu_page = MenuPage(chrome)
 
