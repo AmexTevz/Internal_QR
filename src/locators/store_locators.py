@@ -29,6 +29,8 @@ class MenuContents:
     CATEGORY_PILLS = (By.CSS_SELECTOR, '.menu-category-pill')
     CATEGORY_LABEL = (By.CSS_SELECTOR, '.menu-category-label')
 
+    INITIAL_BUTTON = (By.CSS_SELECTOR, '#goto-main-page-button')
+
     def category_button_by_id(category_id):
         return By.ID, category_id
 
@@ -61,6 +63,11 @@ class CheckoutPageLocators:
     CASH_TIP = (By.CSS_SELECTOR, "#tip-cash")
     PAY_BUTTON = (By.CSS_SELECTOR, "#dinein-pay-button")
     NO_THANKS = (By.CSS_SELECTOR, ".rounded-pill")
+    UPSELL_ITEMS = (By.CSS_SELECTOR, "#add-button")
+    UPSELL_ITEM_PRICE = (By.CSS_SELECTOR, '.mod-cta-price')
+    UPSELL_ITEM_NAME = (By.CSS_SELECTOR, '.mod-title')
+    ADD_BUTTON = (By.CSS_SELECTOR, "#add-for-button")
+
 
 class FreedomPayLocators:
     ANCHOR_ELEMENT = (By.XPATH, 'input[placeholder="Name"]')

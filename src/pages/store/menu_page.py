@@ -23,6 +23,10 @@ class MenuPage(BasePage):
     def navigate_to_main_menu(self):
         try:
             self.logger.info("Starting navigation to main menu")
+            if self.is_element_present(MenuContents.INITIAL_BUTTON):
+                time.sleep(2)
+                self.driver.refresh()
+                self.click(MenuContents.INITIAL_BUTTON)
             self.logger.info("Successfully navigated to main menu")
             while not self.find_elements(MenuContents.MENU_ITEMS):
                 self.driver.refresh()
@@ -1016,6 +1020,54 @@ class MenuPage(BasePage):
         except Exception as e:
             self.logger.exception(f"Failed to search and verify '{item_name}': {str(e)}")
             return result
+
+    # @allure.step("Add random upsell item from checkout")
+    # def add_upsell_item_from_checkout(self):
+    #     result = {'item_id': None, 'item_name': None, 'item_price': 0.0, 'added': False}
+    #
+    #     try:
+    #         upsell_items = self.find_elements(MenuContents.UPSELL_ITEMS, timeout=5)
+    #         if not upsell_items:
+    #             return result
+    #
+    #         selected_item = random.choice(upsell_items)
+    #         self.click(selected_item)
+    #         item_id, item_name = self._extract_item_info(selected_item)
+    #         if not item_id or not item_name:
+    #             return result
+    #
+    #         result['item_id'] = item_id
+    #         result['item_name'] = item_name
+    #
+    #
+    #         self.attach_screenshot(f"Upsell item opened: {item_name}")
+    #         time.sleep(1)
+    #
+    #         if self.is_element_displayed(MenuContents.ITEM_PRICE):
+    #             price_text = self.get_text(MenuContents.ITEM_PRICE)
+    #             result['item_price'] = float(price_text.replace('$', '').replace(',', ''))
+    #
+    #         selected_modifiers, modifier_cost = self._handle_all_modifiers()
+    #         result['item_price'] += modifier_cost
+    #
+    #         add_button = self.find_element(MenuContents.ADD_BUTTON, timeout=5)
+    #         self.click(add_button)
+    #         self.attach_screenshot(f"Added upsell item: {item_name}")
+    #
+    #         # Update cart tracking
+    #         self.cart_items[item_id] = self.cart_items.get(item_id, 0) + 1
+    #         self.logger.info(f"Cart updated - {item_id}: {self.cart_items[item_id]}")
+    #
+    #         result['added'] = True
+    #         time.sleep(1)
+    #
+    #         # NO attach_note here - test will add comprehensive summary
+    #
+    #         return result
+    #
+    #     except Exception as e:
+    #         self.logger.exception(f"Failed to add upsell: {str(e)}")
+    #         return result
 
 
 

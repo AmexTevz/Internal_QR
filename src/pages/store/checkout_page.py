@@ -1,11 +1,9 @@
-import time
-from selenium.webdriver import Keys
-from src.pages.base_page import BasePage, wait_for_loader
-from src.locators.store_locators import CheckoutPageLocators, FreedomPayLocators
+from src.pages.base_page import BasePage
+from src.locators.store_locators import CheckoutPageLocators
 from src.utils.logger import Logger
 import random
-import math
 import allure
+
 
 
 class CheckoutPage(BasePage):
@@ -20,25 +18,21 @@ class CheckoutPage(BasePage):
     def manage_tips(self, amount=None, manual_roundup = False):
         self.logger.info("managing tips")
         try:
-            if amount == 0 and manual_roundup is False:
-                self.click(CheckoutPageLocators.CASH_TIP)
-                pass
-            elif amount is None and manual_roundup is False:
-                self.click(random.choice([CheckoutPageLocators.TIP_18, CheckoutPageLocators.TIP_20, CheckoutPageLocators.TIP_22]))
-            elif manual_roundup:
+            if manual_roundup:
                 self.click(CheckoutPageLocators.TIP_CUSTOM)
                 self.click(CheckoutPageLocators.TIP_CUSTOM)
                 tip_input = self.find_element(CheckoutPageLocators.TIP_CUSTOM_INPUT)
                 tip_input.clear()
-                if manual_roundup:
-                    amount_needed = self.get_text_3(CheckoutPageLocators.CHARITY_AMOUNT)
-                    if amount_needed != '$0.00':
-                        tip_input.send_keys(amount_needed)
-                    else:
-                        self.logger.debug("tip not added - already rounded up")
-                        self.attach_screenshot("tip not added - already rounded up")
+                amount_needed = self.get_text_3(CheckoutPageLocators.CHARITY_AMOUNT)
+                if amount_needed != '$0.00':
+                    tip_input.send_keys(amount_needed)
                 else:
-                    tip_input.send_keys(amount)
+                    self.logger.debug("tip not added - already rounded up")
+                    self.attach_screenshot("tip not added - already rounded up")
+            elif amount == 0 and manual_roundup is False:
+                self.click(CheckoutPageLocators.CASH_TIP)
+            elif amount is None and manual_roundup is False:
+                self.click(random.choice([CheckoutPageLocators.TIP_18, CheckoutPageLocators.TIP_20, CheckoutPageLocators.TIP_22]))
 
             applied_tip = self.get_text_3(CheckoutPageLocators.TIPS_VALUE).strip()
 
@@ -84,6 +78,20 @@ class CheckoutPage(BasePage):
             self.logger.exception(f"Failed to get subtotal from checkout: {str(e)}")
             raise
 
+    def _extract_item_info(self, item):
+        """Extract item ID and name from an article element"""
+        try:
+            item_id = item.get_attribute("id")
+
+            # Find the title element INSIDE this article
+            title_element = item.find_element(By.CSS_SELECTOR, '.menu-list-title')
+            item_name = title_element.text.strip()
+
+            self.logger.debug(f"Extracted item - ID: {item_id}, Name: {item_name}")
+            return item_id, item_name
+        except Exception as e:
+            self.logger.exception(f"Failed to extract item info: {str(e)}")
+            return None, None
     @allure.step("Get check and table numbers from checkout page")
     def get_check_number_checkout(self):
         try:
@@ -119,17 +127,43 @@ class CheckoutPage(BasePage):
             raise
 
     @allure.step("Navigate to payment page")
-    def go_to_payment_page(self, upsell = False):
+    def go_to_payment_page(self, upsell=False):
+
+        # Click PAY button
         self.click(CheckoutPageLocators.PAY_BUTTON)
         self.logger.info(f"Clicked Pay button")
         self.attach_note(f"Clicked Pay button")
-        self.attach_screenshot("Clicked Pay button")
+        self.attach_screenshot("The list of upsell items")
+        if upsell:
+            info = {}
+            try:
+                upsell_items = self.find_elements(CheckoutPageLocators.UPSELL_ITEMS, timeout=5)
+                upsell_choice = random.choice(upsell_items)
+                self.click(upsell_choice)
+                upsell_item_name = self.get_text(CheckoutPageLocators.UPSELL_ITEM_NAME)
+                info['name'] = upsell_item_name
+                self.logger.info(f"Upsell item name: {upsell_item_name}")
+                if self.is_element_displayed(CheckoutPageLocators.UPSELL_ITEM_PRICE):
+                    price_text = self.get_text(CheckoutPageLocators.UPSELL_ITEM_PRICE)
+                    upsell_price = float(price_text.replace('$', '').replace(',', ''))
+                    self.logger.info(f"Upsell price: {upsell_price:.2f}")
+                    info['price'] = upsell_price
+                self.attach_screenshot(f"Selected upsell item: {info['name']} - ${info['price']:.2f}")
+                self.click(CheckoutPageLocators.ADD_BUTTON)
+                return info
 
-        if not upsell:
-            self.click(CheckoutPageLocators.NO_THANKS)
-            self.logger.info(f"Declined upsell items")
-            self.attach_note(f"Declined upsell items")
-            self.attach_screenshot("Declined upsell items")
+            except:
+                self.logger.info("Upsell items were not found")
+                self.attach_note("Upsell items were not found")
+
+        else:
+            no_thanks = self.find_element(CheckoutPageLocators.NO_THANKS, timeout=3)
+            if no_thanks:
+                self.click(no_thanks)
+                self.logger.info(f"Declined additional upsells")
+                self.attach_screenshot("Declined additional upsells")
+
+
 
 
 

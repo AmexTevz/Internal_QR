@@ -6,7 +6,7 @@ from src.data.endpoints.close_table import close_table
 from datetime import datetime
 
 
-TABLES = [3]
+TABLES = [12]
 
 
 @pytest.mark.parametrize("table", TABLES)

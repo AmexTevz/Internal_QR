@@ -51,11 +51,12 @@ TABLES = [1]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.checkout
+@pytest.mark.checkout_simple
 @pytest.mark.functional
 @pytest.mark.all
 @allure.feature("Menu")
 @allure.story("Checkout")
-@allure.title("Checkout Flow")
+@allure.title("Simple Checkout Flow")
 def test_checkout_flow(browser_factory, endpoint_setup, table):
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
@@ -68,7 +69,7 @@ def test_checkout_flow(browser_factory, endpoint_setup, table):
 
     num_items = 2
     quantity = 2
-    reorder_count = 1
+    reorder_count = 0
 
     try:
         with allure.step(f"Customer places the order on table {table}"):

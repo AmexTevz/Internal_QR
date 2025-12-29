@@ -42,7 +42,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [2]
+TABLES = [11]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.badge
