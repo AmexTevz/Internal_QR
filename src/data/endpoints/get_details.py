@@ -1,7 +1,4 @@
 
-
-import requests
-import json
 from src.data.endpoints.combined import get_current_api
 
 

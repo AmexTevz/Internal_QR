@@ -55,11 +55,12 @@ def category_has_available_items(category_id, menu_data):
     return False
 
 
-TABLES = [4]
+TABLES = [19]
 
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.categories
+@pytest.mark.functional
 @pytest.mark.all
 @allure.feature("Categories")
 @allure.title("Category Navigation and API Verification")

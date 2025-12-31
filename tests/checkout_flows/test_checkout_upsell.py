@@ -47,12 +47,11 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [3]
+TABLES = [20]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.checkout
 @pytest.mark.checkout_with_upsell
-@pytest.mark.functional
 @pytest.mark.all
 @allure.feature("Menu")
 @allure.story("Checkout")

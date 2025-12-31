@@ -5,7 +5,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from src.pages.base_page import BasePage
 from src.data.table_config import get_table_url, DEFAULT_TABLE_NUMBER
 
-# Keep for backward compatibility - but it will be overridden dynamically
 URL = "https://nextgen-frontend-dev-b0chfba5a6hyb3ga.eastus-01.azurewebsites.net/38A31859-CA10-452C-BF40-ED361D7F6749"
 prop = 33
 rvc = 810

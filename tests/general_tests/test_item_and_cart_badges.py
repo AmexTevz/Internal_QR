@@ -5,6 +5,7 @@ from src.data.endpoints.get_details import get_check_details
 from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.close_table import close_table
 from datetime import datetime
+import pytest_check as check
 
 
 def attach_note(note_text, name="Note"):
@@ -42,7 +43,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [11]
+TABLES = [18]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.badge
@@ -66,8 +67,10 @@ def test_badges(browser_factory, endpoint_setup, table):
                 menu_page.select_random_menu_items(num_items=2, quantity=3, verify_badges=True)
                 item_id = list(menu_page.cart_items.keys())[0]
                 menu_page.add_more_of_item(item_id, quantity=2)
-                assert menu_page.verify_cart_badge()
-                assert menu_page.verify_item_badges()
+                check.is_true(menu_page.verify_cart_badge(), "Cart badge should be correct")
+                check.is_true(menu_page.verify_item_badges(), "Item badges should be correct")
+
+
 
 
     except Exception as e:

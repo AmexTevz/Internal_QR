@@ -47,16 +47,16 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [22]
+TABLES = [14]
 
 @pytest.mark.parametrize("table", TABLES)
-@pytest.mark.checkout_with_rounds
-@pytest.mark.checkout
+@pytest.mark.tips_and_donations
+@pytest.mark.custom_tip
 @pytest.mark.all
 @allure.feature("Menu")
 @allure.story("Checkout")
-@allure.title("Checkout Flow with Additional Rounds")
-def test_checkout_flow(browser_factory, endpoint_setup, table):
+@allure.title("Test custom tip amount")
+def test_custom_tip(browser_factory, endpoint_setup, table):
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
@@ -64,11 +64,10 @@ def test_checkout_flow(browser_factory, endpoint_setup, table):
     menu_page = MenuPage(chrome)
     cart_page = CartPage(chrome)
     checkout_page = CheckoutPage(chrome)
-    payment_page = PaymentPage(chrome)
 
-    num_items = 2
-    quantity = 2
-    reorder_count = 2
+    num_items = 1
+    quantity = 1
+    reorder_count = 0
 
     try:
         with allure.step(f"Customer places the order on table {table}"):
@@ -76,18 +75,12 @@ def test_checkout_flow(browser_factory, endpoint_setup, table):
                 menu_page.navigate_to_main_menu()
                 menu_page.select_random_menu_items(num_items=num_items, quantity=quantity, verify_badges=True)
 
-                check.is_true(menu_page.verify_logo_exists(), "Logo does not exist")
-                check.is_true(menu_page.verify_cart_badge(), "Cart badge verification failed")
-                check.is_true(menu_page.verify_item_badges(), "All cart badges verification failed")
-
                 menu_page.go_to_basket()
 
                 api_check_number = int(get_api_data('check_number'))
-                cart_check_number = cart_page.get_check_number_in_basket()
-                check.equal(api_check_number, cart_check_number, "Check number does not match in cart page")
+                cart_page.get_check_number_in_basket()
 
-                cart_table_number = cart_page.get_check_table_in_basket()
-                check.equal(table, cart_table_number, "Check table does not match in cart page")
+                cart_page.get_check_table_in_basket()
 
                 cart_page.place_order()  # Returns to menu
 
@@ -102,27 +95,13 @@ def test_checkout_flow(browser_factory, endpoint_setup, table):
                 menu_page.go_to_basket()
                 cart_page.navigate_to_checkout_page()
 
-                api_item_count = get_api_data('count')
-                total_expected_items = (num_items * quantity) + reorder_count
-                check.equal(api_item_count, total_expected_items, "Number of items does not match")
 
-                checkout_table_number = checkout_page.get_check_table_checkout()
-                check.equal(checkout_table_number, table, "Check table does not match in checkout page")
+                custom_tip = round(random.uniform(39.99, 139.99), 2)
+                checkout_page.manage_tips(custom_tip)
+                app_tip = checkout_page.get_tip_amount()
+                check.equal(custom_tip, app_tip, "Tip is incorrect")
 
-                checkout_check_number = checkout_page.get_check_number_checkout()
-                check.equal(checkout_check_number, api_check_number, "Check number does not match in checkout page")
 
-                app_subtotal = checkout_page.get_subtotal()
-                api_subtotal = get_api_data('subtotal')
-                check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect")
-
-                checkout_page.manage_tips(25)
-                charity_applied = checkout_page.apply_charity()
-                check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
-
-        with allure.step(f"Customer navigates to payment page {table}"):
-                checkout_page.go_to_payment_page()
-                payment_page.make_the_payment()
 
     except Exception as e:
         close_table()

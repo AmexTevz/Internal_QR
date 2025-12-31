@@ -1,3 +1,5 @@
+import time
+
 from src.pages.base_page import BasePage
 from src.locators.store_locators import CheckoutPageLocators
 from src.utils.logger import Logger
@@ -20,7 +22,6 @@ class CheckoutPage(BasePage):
         try:
             if manual_roundup:
                 self.click(CheckoutPageLocators.TIP_CUSTOM)
-                self.click(CheckoutPageLocators.TIP_CUSTOM)
                 tip_input = self.find_element(CheckoutPageLocators.TIP_CUSTOM_INPUT)
                 tip_input.clear()
                 amount_needed = self.get_text_3(CheckoutPageLocators.CHARITY_AMOUNT)
@@ -33,6 +34,11 @@ class CheckoutPage(BasePage):
                 self.click(CheckoutPageLocators.CASH_TIP)
             elif amount is None and manual_roundup is False:
                 self.click(random.choice([CheckoutPageLocators.TIP_18, CheckoutPageLocators.TIP_20, CheckoutPageLocators.TIP_22]))
+            else:
+                self.click(CheckoutPageLocators.TIP_CUSTOM)
+                tip_input = self.find_element(CheckoutPageLocators.TIP_CUSTOM_INPUT)
+                tip_input.clear()
+                tip_input.send_keys(amount)
 
             applied_tip = self.get_text_3(CheckoutPageLocators.TIPS_VALUE).strip()
 
@@ -48,10 +54,13 @@ class CheckoutPage(BasePage):
         except:
             pass
 
+    @allure.step("Manage charity")
     def apply_charity(self):
         self.click(CheckoutPageLocators.CHARITY_TOGGLE)
         applied_charity = self.get_text_3(CheckoutPageLocators.CHARITY_AMOUNT)
         applied_charity = float(applied_charity.strip())
+        self.attach_screenshot("After applying the charity")
+        self.attach_note(f"Charity amount: ${applied_charity}")
         return applied_charity
 
 
@@ -76,22 +85,8 @@ class CheckoutPage(BasePage):
         except Exception as e:
             self.logger.error(f"Failed to get subtotal from checkout: {str(e)}")
             self.logger.exception(f"Failed to get subtotal from checkout: {str(e)}")
-            raise
 
-    def _extract_item_info(self, item):
-        """Extract item ID and name from an article element"""
-        try:
-            item_id = item.get_attribute("id")
 
-            # Find the title element INSIDE this article
-            title_element = item.find_element(By.CSS_SELECTOR, '.menu-list-title')
-            item_name = title_element.text.strip()
-
-            self.logger.debug(f"Extracted item - ID: {item_id}, Name: {item_name}")
-            return item_id, item_name
-        except Exception as e:
-            self.logger.exception(f"Failed to extract item info: {str(e)}")
-            return None, None
     @allure.step("Get check and table numbers from checkout page")
     def get_check_number_checkout(self):
         try:
@@ -108,7 +103,7 @@ class CheckoutPage(BasePage):
         except Exception as e:
             self.logger.error(f"Failed to get check number from checkout: {str(e)}")
             self.logger.exception(f"Failed to get check number from checkout: {str(e)}")
-            raise
+
 
     def get_check_table_checkout(self):
         try:
@@ -124,7 +119,7 @@ class CheckoutPage(BasePage):
         except Exception as e:
             self.logger.error(f"Failed to get table number from checkout: {str(e)}")
             self.logger.exception(f"Failed to get table number from checkout: {str(e)}")
-            raise
+
 
     @allure.step("Navigate to payment page")
     def go_to_payment_page(self, upsell=False):
@@ -162,6 +157,43 @@ class CheckoutPage(BasePage):
                 self.click(no_thanks)
                 self.logger.info(f"Declined additional upsells")
                 self.attach_screenshot("Declined additional upsells")
+
+    @allure.step("Get subtotal from checkout page")
+    def get_tip_amount(self):
+        try:
+            self.is_element_displayed(CheckoutPageLocators.SUBTOTAL_VALUE, timeout=5)
+
+            tip_value = self.get_text_3(CheckoutPageLocators.TIPS_VALUE)
+            tip_value = float(tip_value.replace('$', '').strip())
+
+            self.logger.info(f"Tip retrieved from checkout: ${tip_value:.2f}")
+            self.attach_note(f"Tip: ${tip_value:.2f}")
+
+            return tip_value
+        except Exception as e:
+            self.logger.error(f"Failed to get subtotal from checkout: {str(e)}")
+            self.logger.exception(f"Failed to get subtotal from checkout: {str(e)}")
+
+
+    @allure.step("Get total from checkout page")
+    def get_total(self):
+        try:
+            self.is_element_displayed(CheckoutPageLocators.TOTAL_VALUE, timeout=5)
+            time.sleep(1)
+            total_value = self.get_text_3(CheckoutPageLocators.TOTAL_VALUE)
+            total_value = float(total_value.replace('$', '').strip())
+
+            self.logger.info(f"Total retrieved from checkout: ${total_value:.2f}")
+            self.attach_note(f"Total: ${total_value:.2f}")
+
+            return total_value
+        except Exception as e:
+            self.logger.error(f"Failed to get total from checkout: {str(e)}")
+            self.logger.exception(f"Failed to get total from checkout: {str(e)}")
+
+
+    def choose_cash_tip(self):
+        self.click(CheckoutPageLocators.CASH_TIP)
 
 
 

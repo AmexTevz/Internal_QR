@@ -1,11 +1,3 @@
-"""
-Module for retrieving full menu with categories, items, and modifier groups.
-This endpoint returns the complete menu structure including:
-- Categories (with focus on Active, IsAlcohol, DisplayOrder, etc.)
-- Menu Items with prices and descriptions
-- Modifier Groups and their modifiers
-- All nested relationships
-"""
 
 import requests
 import json
@@ -13,49 +5,11 @@ from src.data.endpoints.combined import get_current_api
 
 
 def get_full_menu():
-    """
-    Get the full menu structure including categories, items, and modifier groups.
 
-    This function automatically handles authentication by using the current API instance,
-    which ensures the session_id is valid. If the session expires, the API will
-    re-authenticate automatically through the setup_table flow.
-
-    Returns:
-        dict: Full menu data including:
-            - Items: List of all menu items with nested categories, modifiers
-            - Status: API response status
-        None: If the request fails
-
-    Example response structure:
-        {
-            "Items": [
-                {
-                    "ID": "1010014-1",
-                    "Name": "Juice Bar",
-                    "Price": 4.99,
-                    "Categories": [
-                        {
-                            "ID": "94a1054a-5610-4970-bffb-c8a9db66985e",
-                            "Name": "Non-Alcoholic Beverages",
-                            "DisplayOrder": 2,
-                            "IsAlcohol": false,
-                            "Active": true,
-                            ...
-                        }
-                    ],
-                    "ModifierGroups": [...],
-                    ...
-                }
-            ],
-            "Status": "SUCCESS"
-        }
-    """
     try:
-        # Get the API instance for this worker
-        # This ensures we use the authenticated session
+
         api = get_current_api()
 
-        # Construct the URL for the menu endpoint
         url = f'{api.base_url}/v2/catalog/menuitems/modifiergroups/byrevenuecenter'
 
         # Prepare headers with subscription key
@@ -64,29 +18,26 @@ def get_full_menu():
             'Ocp-Apim-Subscription-Key': api.api_key
         }
 
-        # Prepare payload with required parameters
+
         payload = {
             "PropertyID": api.property_id,
             "RevenueCenterID": api.revenue_center_id,
             "ClientID": api.client_id,
-            "SessionID": api.session_id  # Uses authenticated session
+            "SessionID": api.session_id
         }
 
         print(f"Fetching full menu for Property: {api.property_id}, RevenueCenterID: {api.revenue_center_id}...")
 
-        # Make the API request
         response = requests.post(url, headers=headers, json=payload)
 
-        # Check response status
+
         if response.status_code != 200:
             print(f"✗ Failed to get menu. Status code: {response.status_code}")
             print(f"Response: {response.text}")
             return None
 
-        # Parse response data
         data = response.json()
 
-        # Validate response has expected structure
         if 'Items' not in data:
             print(f"✗ Unexpected response structure - 'Items' field not found")
             print(f"Response keys: {data.keys()}")

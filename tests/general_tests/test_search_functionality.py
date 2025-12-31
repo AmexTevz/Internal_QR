@@ -6,7 +6,7 @@ from src.data.endpoints.close_table import close_table
 from datetime import datetime
 
 
-TABLES = [12]
+TABLES = [17]
 
 
 @pytest.mark.parametrize("table", TABLES)
@@ -25,9 +25,6 @@ def test_search_functionality(browser_factory, endpoint_setup, table):
     try:
         menu_page.navigate_to_main_menu()
 
-        # ========================================
-        # PART 1: Keyword Search Test
-        # ========================================
         with allure.step("Test 1: Search by keywords"):
             keywords = ["juice", "salmon", "sandwich", "egg", "soup"]
             results = menu_page.search_multiple_keywords(keywords)

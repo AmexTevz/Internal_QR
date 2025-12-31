@@ -51,6 +51,7 @@ class CheckoutPageLocators:
     CHECK_NUMBER_CHECKOUT = (By.CSS_SELECTOR, "#dinein-check-number")
     TABLE_NUMBER_CHECKOUT = (By.CSS_SELECTOR, "#dinein-table-number")
     SUBTOTAL_VALUE = (By.CSS_SELECTOR, "#Subtotal-value")
+    TOTAL_VALUE = (By.CSS_SELECTOR, "#Total-value")
     TAXES_VALUE = (By.CSS_SELECTOR, "#Taxes-value")
     TIPS_VALUE = (By.CSS_SELECTOR, "#Tip-value")
     CHARITY_TOGGLE = (By.CSS_SELECTOR, "#charity-input")

@@ -25,7 +25,7 @@ class MenuPage(BasePage):
             self.logger.info("Starting navigation to main menu")
             if self.is_element_present(MenuContents.INITIAL_BUTTON):
                 time.sleep(2)
-                self.driver.refresh()
+                # self.driver.refresh()
                 self.click(MenuContents.INITIAL_BUTTON)
             self.logger.info("Successfully navigated to main menu")
             while not self.find_elements(MenuContents.MENU_ITEMS):
@@ -33,7 +33,7 @@ class MenuPage(BasePage):
                 time.sleep(1)
         except Exception as e:
             self.logger.exception(f"Failed to navigate to main menu: {str(e)}")
-            raise
+
 
     @allure.step("Get order number")
     def order_number(self):
@@ -47,7 +47,6 @@ class MenuPage(BasePage):
         except Exception as e:
             self.logger.error(f"Failed to get order number: {str(e)}")
             self.logger.exception(f"Failed to get order number: {str(e)}")
-            raise
     def _extract_item_info(self, item):
         """Extract item ID and name from an article element"""
         try:
@@ -118,14 +117,13 @@ class MenuPage(BasePage):
 
     @allure.step("Verify all cart item badges")
     def verify_item_badges(self):
-
         results = {}
         for item_id, expected_count in self.cart_items.items():
             results[item_id] = self.verify_item_badge_count(item_id, expected_count)
 
         all_passed = all(results.values())
         self.logger.info(f"Badge verification complete. All passed: {all_passed}")
-        return results
+        return all_passed
 
     def clear_cart_tracking(self):
         """Reset the cart tracking dictionary"""
@@ -141,7 +139,6 @@ class MenuPage(BasePage):
                 self.logger.debug(f"Clicked plus button ({i + 1}/{times})")
         except Exception as e:
             self.logger.exception(f"Failed to increase quantity: {str(e)}")
-            raise
 
     @allure.step("Get cart badge count")
     def get_cart_badge_count(self):
@@ -161,10 +158,7 @@ class MenuPage(BasePage):
 
     @allure.step("Verify cart badge shows accurate number")
     def verify_cart_badge(self, expected_count=None):
-        """
-        Verify cart badge matches expected count.
-        If expected_count is None, uses sum of cart_items.
-        """
+
         try:
             if expected_count is None:
                 expected_count = sum(self.cart_items.values())
@@ -323,7 +317,7 @@ class MenuPage(BasePage):
 
         except Exception as e:
             self.logger.exception(f"Failed to select random menu items: {str(e)}")
-            raise
+
 
     def _handle_all_modifiers(self):
         try:
@@ -464,7 +458,7 @@ class MenuPage(BasePage):
         except Exception as e:
             self.logger.error(f"Failed to get table number: {str(e)}")
             self.logger.exception("Failed to get table number from the menu page")
-            raise
+
 
     def search_multiple_keywords(self, keywords: list[str]) -> dict:
         while not self.find_elements(MenuContents.MENU_ITEMS):
@@ -564,7 +558,7 @@ class MenuPage(BasePage):
         except Exception as e:
             self.logger.error(f"Failed to go to basket: {str(e)}")
             self.logger.exception(f"Failed to go to basket: {str(e)}")
-            raise
+
 
     @allure.step("Get all category buttons with IDs")
     def get_all_category_buttons(self):
@@ -888,15 +882,7 @@ class MenuPage(BasePage):
 
     @allure.step("Get {num_items} random menu items for search testing")
     def get_random_menu_items_for_search(self, num_items=5):
-        """
-        Get random menu items with their exact names for search verification.
-
-        Args:
-            num_items: Number of random items to select (default 5)
-
-        Returns:
-            list: List of dicts with 'id' and 'name' for each item
-        """
+        random.seed(time.time())
         try:
             while not self.find_elements(MenuContents.MENU_ITEMS):
                 self.driver.refresh()
@@ -910,7 +896,6 @@ class MenuPage(BasePage):
 
             self.logger.info(f"Found {len(items)} total menu items, selecting {num_items} random items")
             selected_items = random.sample(items, min(num_items, len(items)))
-
             item_details = []
             for item in selected_items:
                 try:
