@@ -56,7 +56,7 @@ TABLES = [21]
 @allure.feature("Menu")
 @allure.story("Checkout")
 @allure.title("Simple Checkout Flow")
-def test_checkout_flow(browser_factory, endpoint_setup, table):
+def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
@@ -66,8 +66,8 @@ def test_checkout_flow(browser_factory, endpoint_setup, table):
     checkout_page = CheckoutPage(chrome)
     payment_page = PaymentPage(chrome)
 
-    num_items = 2
-    quantity = 2
+    num_items = 3
+    quantity = 1
     reorder_count = 0
 
     try:

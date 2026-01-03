@@ -58,7 +58,6 @@ def test_badges(browser_factory, endpoint_setup, table):
     [chrome] = browser_factory("chrome")
     menu_page = MenuPage(chrome)
 
-
     try:
         with allure.step(f"Verify item and cart badges - {table}"):
             with allure.step("Navigate to main menu"):
@@ -70,8 +69,7 @@ def test_badges(browser_factory, endpoint_setup, table):
                 check.is_true(menu_page.verify_cart_badge(), "Cart badge should be correct")
                 check.is_true(menu_page.verify_item_badges(), "Item badges should be correct")
 
-
-
+                menu_page.attach_badge_test_summary()
 
     except Exception as e:
         with allure.step("ERROR"):

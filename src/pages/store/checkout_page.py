@@ -19,6 +19,7 @@ class CheckoutPage(BasePage):
     @allure.step("Manage tips")
     def manage_tips(self, amount=None, manual_roundup = False):
         self.logger.info("managing tips")
+        self.attach_screenshot("Before sending the tips")
         try:
             if manual_roundup:
                 self.click(CheckoutPageLocators.TIP_CUSTOM)

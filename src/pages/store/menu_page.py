@@ -104,15 +104,18 @@ class MenuPage(BasePage):
 
     def _get_badge_count(self, item_id):
         try:
-            badge_locator = (By.CSS_SELECTOR, f"#add-item-{item_id} .menu-item-add-count")
-            badge_element = self.find_element(badge_locator, timeout=3)
+            badge_selector = f"#add-item-{item_id} .menu-item-add-count"
+            badge_elements = self.driver.find_elements(By.CSS_SELECTOR, badge_selector)
 
-            if badge_element and self.is_element_displayed(badge_locator):
-                count_text = badge_element.text.strip()
-                return int(count_text) if count_text else 0
+            # Return only VISIBLE badge (not all instances)
+            for badge in badge_elements:
+                if badge.is_displayed():
+                    count_text = badge.text.strip()
+                    return int(count_text) if count_text else 0
+
             return 0
         except Exception as e:
-            self.logger.debug(f"No badge found for item {item_id}: {str(e)}")
+            self.logger.debug(f"No visible badge found for item {item_id}: {str(e)}")
             return 0
 
     @allure.step("Verify all cart item badges")
@@ -179,44 +182,69 @@ class MenuPage(BasePage):
             self.logger.exception(f"Failed to verify cart badge: {str(e)}")
             return False
 
-    @allure.step("Add more of item {item_id}")
+    @allure.step("Add {quantity} more of item {item_id}")
     def add_more_of_item(self, item_id, quantity=1, verify_badges=True):
-        """
-        Find an existing item on menu, open it, add more to cart.
-        Used when you want to add more of an item already in cart.
-        """
         try:
-            # Find and click the item by ID
             item_locator = (By.ID, item_id)
             item = self.find_element(item_locator)
             item_name = item.find_element(By.CSS_SELECTOR, '.menu-list-title').text.strip()
 
+            previous_count = self.cart_items.get(item_id, 0)
+            new_count = previous_count + quantity
+
+            with allure.step(f"Adding {quantity} more of '{item_name}'"):
+                allure.attach(
+                    f"Item: {item_name}\n"
+                    f"Item ID: {item_id}\n"
+                    f"Previous Quantity: {previous_count}\n"
+                    f"Adding: {quantity}\n"
+                    f"New Expected Quantity: {new_count}",
+                    name=f"Before Adding More",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+
             self.logger.info(f"Adding {quantity} more of item {item_id} ({item_name})")
             self.click(item)
 
-            # Increase quantity if more than 1
             if quantity > 1:
-                self._increase_quantity(quantity - 1)
+                with allure.step(f"Increase quantity to {quantity}"):
+                    self._increase_quantity(quantity - 1)
 
-            # Click ADD
-            add_button = self.find_element(MenuContents.ADD_BUTTON)
-            self.click(add_button)
+            with allure.step(f"Add to cart"):
+                add_button = self.find_element(MenuContents.ADD_BUTTON)
+                self.click(add_button)
 
-            # Track in cart
-            self.cart_items[item_id] = self.cart_items.get(item_id, 0) + quantity
+            self.cart_items[item_id] = new_count
             self.logger.debug(f"Cart updated - {item_id}: {self.cart_items[item_id]}")
 
-            # Verify badges
+            allure.attach(
+                f"Item: {item_name}\n"
+                f"Item ID: {item_id}\n"
+                f"Quantity Added: {quantity}\n"
+                f"New Total Quantity: {new_count}",
+                name=f"After Adding More",
+                attachment_type=allure.attachment_type.TEXT
+            )
+
             if verify_badges:
                 with allure.step(f"Verify badges after adding more of '{item_name}'"):
-                    item_badge_ok = self.verify_item_badge_count(item_id, self.cart_items[item_id])
+                    item_badge_ok = self.verify_item_badge_count(item_id, new_count)
                     cart_badge_ok = self.verify_cart_badge()
-                    self.attach_screenshot(f"After adding more of '{item_name}'")
+                    self.attach_screenshot(f"After adding {quantity} more of '{item_name}'")
                     return item_badge_ok and cart_badge_ok
 
             return True
 
         except Exception as e:
+            with allure.step(f"❌ ERROR adding more of item {item_id}"):
+                allure.attach(
+                    f"Item ID: {item_id}\n"
+                    f"Quantity to Add: {quantity}\n"
+                    f"Error: {str(e)}",
+                    name="Error Adding More",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+                self.attach_screenshot(f"Error adding more of {item_id}")
             self.logger.exception(f"Failed to add more of item {item_id}: {str(e)}")
             return False
 
@@ -234,7 +262,8 @@ class MenuPage(BasePage):
                 return {'items': [], 'total': 0.0, 'count': 0}
 
             self.logger.debug(f"Found {len(items)} menu items")
-            selected_items = random.sample(items, min(num_items, len(items)))
+            random.shuffle(items)
+            selected_items = items[:min(num_items, len(items))]
 
             item_details = []
             total_price = 0.0
@@ -330,7 +359,7 @@ class MenuPage(BasePage):
 
             all_elements = modal.find_elements(By.XPATH, ".//*")
 
-            group_headers = modal.find_elements(By.CSS_SELECTOR, ".mod-group-header")
+            group_headers = modal.find_elements(By.CSS_SELECTOR, ".mod-group-title")
 
             if not group_headers:
                 self.logger.debug("No modifier groups found")
@@ -340,8 +369,10 @@ class MenuPage(BasePage):
                 try:
                     header = group_headers[header_index]
 
-                    section_title = header.find_element(By.CSS_SELECTOR, ".mod-group-title").text.strip()
-                    self.logger.debug(f"Processing modifier section {header_index + 1}: {section_title}")
+                    section_title = header.text.strip()  # ← CHANGED THIS LINE
+                    self.logger.info(f"Processing modifier section {header_index + 1}: {section_title}")
+                    self.logger.info(
+                        f"Processing modifier section {header_index + 1}: {section_title}")  # Changed to INFO
 
                     # Get the position of this header and the next header
                     header_position = all_elements.index(header)
@@ -360,21 +391,27 @@ class MenuPage(BasePage):
                         if elem.tag_name == "button" and "mod-option-row" in elem.get_attribute("class"):
                             option_buttons.append(elem)
 
+                    self.logger.info(
+                        f"Found {len(option_buttons)} option buttons in section: {section_title}")  # ADD THIS
+
                     if not option_buttons:
-                        self.logger.debug(f"No options found in section: {section_title}")
+                        self.logger.info(f"No options found in section: {section_title}")  # Changed to INFO
                         continue
 
                     available_options = [btn for btn in option_buttons
                                          if btn.get_attribute("aria-pressed") == "false"]
 
+                    self.logger.info(
+                        f"Available options (not pressed): {len(available_options)} out of {len(option_buttons)}")  # ADD THIS
+
                     if not available_options:
-                        self.logger.debug(f"All options already selected in section: {section_title}")
+                        self.logger.info(f"All options already selected in section: {section_title}")  # Changed to INFO
                         continue
 
                     selected_button = random.choice(available_options)
                     modifier_info = self._extract_modifier_info_new(selected_button, section_title)
 
-                    self.logger.debug(
+                    self.logger.info(  # Changed to INFO
                         f"Selected modifier in section '{section_title}': {modifier_info['name']}, Price: ${modifier_info['price']}")
 
                     # Click the button
@@ -882,7 +919,8 @@ class MenuPage(BasePage):
 
     @allure.step("Get {num_items} random menu items for search testing")
     def get_random_menu_items_for_search(self, num_items=5):
-        random.seed(time.time())
+        self.click(MenuContents.SEARCH_CANCEL)
+        time.sleep(1)
         try:
             while not self.find_elements(MenuContents.MENU_ITEMS):
                 self.driver.refresh()
@@ -895,7 +933,10 @@ class MenuPage(BasePage):
                 return []
 
             self.logger.info(f"Found {len(items)} total menu items, selecting {num_items} random items")
-            selected_items = random.sample(items, min(num_items, len(items)))
+
+            random.shuffle(items)
+            selected_items = items[:min(num_items, len(items))]
+
             item_details = []
             for item in selected_items:
                 try:
@@ -919,21 +960,7 @@ class MenuPage(BasePage):
 
     @allure.step("Search for '{item_name}' and verify it's first result")
     def search_and_verify_first_result(self, item_name):
-        """
-        Search for an item by exact name and verify it appears as the first result.
 
-        Args:
-            item_name: Exact name of the item to search for
-
-        Returns:
-            dict: {
-                'searched': bool,
-                'results_found': bool,
-                'is_first': bool,
-                'first_result_name': str or None,
-                'total_results': int
-            }
-        """
         result = {
             'searched': False,
             'results_found': False,
@@ -1006,54 +1033,45 @@ class MenuPage(BasePage):
             self.logger.exception(f"Failed to search and verify '{item_name}': {str(e)}")
             return result
 
-    # @allure.step("Add random upsell item from checkout")
-    # def add_upsell_item_from_checkout(self):
-    #     result = {'item_id': None, 'item_name': None, 'item_price': 0.0, 'added': False}
-    #
-    #     try:
-    #         upsell_items = self.find_elements(MenuContents.UPSELL_ITEMS, timeout=5)
-    #         if not upsell_items:
-    #             return result
-    #
-    #         selected_item = random.choice(upsell_items)
-    #         self.click(selected_item)
-    #         item_id, item_name = self._extract_item_info(selected_item)
-    #         if not item_id or not item_name:
-    #             return result
-    #
-    #         result['item_id'] = item_id
-    #         result['item_name'] = item_name
-    #
-    #
-    #         self.attach_screenshot(f"Upsell item opened: {item_name}")
-    #         time.sleep(1)
-    #
-    #         if self.is_element_displayed(MenuContents.ITEM_PRICE):
-    #             price_text = self.get_text(MenuContents.ITEM_PRICE)
-    #             result['item_price'] = float(price_text.replace('$', '').replace(',', ''))
-    #
-    #         selected_modifiers, modifier_cost = self._handle_all_modifiers()
-    #         result['item_price'] += modifier_cost
-    #
-    #         add_button = self.find_element(MenuContents.ADD_BUTTON, timeout=5)
-    #         self.click(add_button)
-    #         self.attach_screenshot(f"Added upsell item: {item_name}")
-    #
-    #         # Update cart tracking
-    #         self.cart_items[item_id] = self.cart_items.get(item_id, 0) + 1
-    #         self.logger.info(f"Cart updated - {item_id}: {self.cart_items[item_id]}")
-    #
-    #         result['added'] = True
-    #         time.sleep(1)
-    #
-    #         # NO attach_note here - test will add comprehensive summary
-    #
-    #         return result
-    #
-    #     except Exception as e:
-    #         self.logger.exception(f"Failed to add upsell: {str(e)}")
-    #         return result
+    def attach_badge_test_summary(self):
+        """Call at end of badge test to show what failed/passed"""
+        import allure
 
+        summary_lines = ["BADGE VERIFICATION SUMMARY", "=" * 60, "", "CART CONTENTS:"]
+
+        for item_id, count in self.cart_items.items():
+            summary_lines.append(f"  {item_id}: {count} items")
+        summary_lines.append("")
+
+        expected_total = sum(self.cart_items.values())
+        actual_total = self.get_cart_badge_count()
+
+        summary_lines.append("CART BADGE:")
+        if expected_total == actual_total:
+            summary_lines.append(f"  ✅ PASSED - Expected: {expected_total}, Actual: {actual_total}")
+        else:
+            summary_lines.append(
+                f"  ❌ FAILED - Expected: {expected_total}, Actual: {actual_total} (Diff: +{actual_total - expected_total})")
+        summary_lines.append("")
+
+        summary_lines.append("ITEM BADGES:")
+        for item_id, expected_count in self.cart_items.items():
+            actual_count = self._get_badge_count(item_id)
+            if expected_count == actual_count:
+                summary_lines.append(f"  ✅ {item_id}: Expected {expected_count}, Got {actual_count}")
+            else:
+                summary_lines.append(
+                    f"  ❌ {item_id}: Expected {expected_count}, Got {actual_count} (Diff: +{actual_count - expected_count})")
+
+        summary_text = "\n".join(summary_lines)
+
+        allure.attach(
+            summary_text,
+            name="Badge Test Summary",
+            attachment_type=allure.attachment_type.TEXT
+        )
+
+        print("\n" + summary_text)
 
 
 

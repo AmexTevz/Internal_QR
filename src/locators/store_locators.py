@@ -1,6 +1,7 @@
 from selenium.webdriver.common.by import By
 
 class MenuContents:
+    RESTAURANT_NAME = (By.CSS_SELECTOR, '#resturant-name')
     ITEMS = (By.CSS_SELECTOR, '.menu-list-row')
     MENU_ITEMS = (By.CSS_SELECTOR, '.menu-list-row')
     MENU_ITEM_TITLE = (By.CSS_SELECTOR, '.menu-list-title')
@@ -10,6 +11,7 @@ class MenuContents:
     ITEM_COUNT_BADGE = ()
     SEARCH_BUTTON = (By.CSS_SELECTOR, '.lucide-search')
     SEARCH_INPUT = (By.CSS_SELECTOR, '#search-text-input')
+    SEARCH_CANCEL = (By.CSS_SELECTOR, '.menu-search-cancel')
     CHECK_NUMBER = (By.CSS_SELECTOR, 'div.order-no')
     CUSTOMER_NAME = (By.CSS_SELECTOR, 'span.capitalize')
     TABLE_NUMBER_MENU_PAGE = (By.CSS_SELECTOR, ".basket-table-text")

@@ -76,7 +76,7 @@ def test_search_functionality(browser_factory, endpoint_setup, table):
         # PART 2: Random Item Exact Name Search Test
         # ========================================
         with allure.step("Test 2: Search by exact item names"):
-            # Get 5 random menu items
+
             random_items = menu_page.get_random_menu_items_for_search(num_items=5)
 
             check.greater(

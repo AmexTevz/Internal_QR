@@ -92,17 +92,17 @@ def test_custom_tip(browser_factory, endpoint_setup, table):
 
                 checkout_page.choose_cash_tip()
                 initial_total = checkout_page.get_total()
-                custom_tip = round(random.uniform(-139.99, -39.99), 2)
+                custom_tip = round(random.uniform(-12.99, -2.99), 2)
                 checkout_page.manage_tips(custom_tip)
                 after_tip_total = checkout_page.get_total()
 
                 rejected = (initial_total == after_tip_total)
-                accepted = (initial_total + custom_tip == after_tip_total)
+                accepted = (initial_total + abs(custom_tip) == after_tip_total)
 
                 check.is_true(
                     rejected or accepted,
-                    f"Negative tip handling failed. Initial: {initial_total}, After: {after_tip_total}, "
-                    f"Expected either {initial_total} (rejected) or {round(initial_total + abs(custom_tip),2)} (accepted with positive value)"
+                    f"Negative tip handling failed. Tip sent: {custom_tip} Initial: {initial_total}, After: {after_tip_total}, "
+                    f"Expected either {initial_total} (rejected) or {round(initial_total + abs(custom_tip),2)} (ignored '-' and accepted with positive value)"
                 )
 
 

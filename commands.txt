@@ -1,0 +1,19 @@
+./serve-report.sh deploy
+./serve-report.sh serve
+
+npm config get prefix
+export PATH="$PATH:/c/Users/atevzadze/AppData/Roaming/npm"
+echo 'export PATH="$PATH:/c/Users/atevzadze/AppData/Roaming/npm"' >> ~/.bashrc
+
+
+pytest -m single_customer --alluredir=allure-results
+pytest -m single_payment --alluredir=allure-results
+pytest -m regression --alluredir=allure-results
+
+
+# Remove all saved history
+
+rm -rf .allure-history/
+rm -rf allure-results/history/
+rm -rf allure-report/
+rm -rf allure-results/
