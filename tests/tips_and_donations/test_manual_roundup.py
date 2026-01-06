@@ -47,7 +47,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [13]
+TABLES = [24]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.tips_and_donations
@@ -92,6 +92,7 @@ def test_manual_roundup(browser_factory, endpoint_setup, table):
 
                 checkout_page.manage_tips(manual_roundup=True)
                 charity_applied = checkout_page.apply_charity()
+                time.sleep(15)
                 check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied - should be $1")
 
     except Exception as e:

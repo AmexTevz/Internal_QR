@@ -47,7 +47,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [11]
+TABLES = [26]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.tips_and_donations
@@ -92,7 +92,7 @@ def test_random_tip(browser_factory, endpoint_setup, table):
 
                 checkout_page.manage_tips()
                 tip = checkout_page.get_tip_amount()
-                check.not_equal(tip, 0, f"Charity Fail: $0 was applied - should be $1")
+                check.not_equal(tip, 0.00, f"Charity Fail: $0 was applied - should be $1")
 
     except Exception as e:
         close_table()

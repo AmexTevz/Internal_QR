@@ -206,10 +206,18 @@ class MenuPage(BasePage):
             self.logger.info(f"Adding {quantity} more of item {item_id} ({item_name})")
             self.click(item)
 
+            # Handle modifiers (if modal appears)
+            with allure.step(f"Select modifiers for '{item_name}'"):
+                selected_modifiers, modifier_cost = self._handle_all_modifiers()
+                if selected_modifiers:
+                    self.attach_screenshot(f"After selecting modifiers for '{item_name}'")
+
+            # Increase quantity if more than 1
             if quantity > 1:
                 with allure.step(f"Increase quantity to {quantity}"):
                     self._increase_quantity(quantity - 1)
 
+            # Click ADD button
             with allure.step(f"Add to cart"):
                 add_button = self.find_element(MenuContents.ADD_BUTTON)
                 self.click(add_button)

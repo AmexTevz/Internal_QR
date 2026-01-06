@@ -72,7 +72,7 @@ class CheckoutPageLocators:
     ADD_BUTTON = (By.CSS_SELECTOR, "#add-for-button")
 
 
-class FreedomPayLocators:
+class PaymentPageLocators:
     ANCHOR_ELEMENT = (By.XPATH, 'input[placeholder="Name"]')
     CARD_HOLDER_NAME = (By.CSS_SELECTOR, 'input[placeholder="Name"]')
     IFRAME = (By.ID, "hpc--card-frame")
@@ -81,6 +81,15 @@ class FreedomPayLocators:
     SECURITY_CODE = (By.CSS_SELECTOR, "#SecurityCode")
     POSTAL_CODE = (By.CSS_SELECTOR, "#PostalCode")
     MAKE_PAYMENT = (By.XPATH, "//button[text()='Pay Now']")
+    TOTAL_AMOUNT = (By.XPATH, "//p[starts-with(text(), '$')]")
+
+class ConfirmationPageLocators:
+    SUBTOTAL = (By.CSS_SELECTOR, "div[style*='border-top'][style*='padding-top: 12px'] > div:nth-child(1) > span:last-child")
+    TAX = (By.CSS_SELECTOR, "div[style*='border-top'][style*='padding-top: 12px'] > div:nth-child(2) > span:last-child")
+    TIP = (By.CSS_SELECTOR, "div[style*='border-top'][style*='padding-top: 12px'] > div:nth-child(3) > span:last-child")
+    TOTAL = (By.CSS_SELECTOR, "div[style*='border-top'][style*='padding-top: 12px'] > div:nth-child(4) > span:last-child")
+
+
 
 
 

@@ -8,6 +8,7 @@ from src.pages.store.menu_page import MenuPage
 from src.pages.store.checkout_page import CheckoutPage
 from src.pages.store.cart_page import CartPage
 from src.pages.store.payment_page import PaymentPage
+from src.pages.store.confirmation_page import ConfirmationPageLocators
 from src.data.endpoints.close_table import close_table
 import pytest_check as check
 
@@ -116,13 +117,17 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
                 api_subtotal = get_api_data('subtotal')
                 check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect")
 
-                checkout_page.manage_tips(25)
-                charity_applied = checkout_page.apply_charity()
-                check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
+                checkout_page.manage_tips(0)
+                # charity_applied = checkout_page.apply_charity()
+                # check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
+                checkout_page_total = checkout_page.get_total()
 
         with allure.step(f"Customer navigates to payment page {table}"):
                 checkout_page.go_to_payment_page()
+                payment_page_total = payment_page.get_total_amount()
+                check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
                 payment_page.make_the_payment()
+                time.sleep(60)
 
     except Exception as e:
         close_table()

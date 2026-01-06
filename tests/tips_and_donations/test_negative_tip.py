@@ -47,7 +47,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [12]
+TABLES = [25]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.tips_and_donations

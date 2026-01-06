@@ -1,0 +1,95 @@
+import time
+import pytest
+import allure
+import json
+from src.pages.store.menu_page import MenuPage
+from src.data.endpoints.item_management import ItemManagementAPI
+from datetime import datetime
+
+TABLES = [14]
+
+
+@pytest.mark.parametrize("table", TABLES)
+@pytest.mark.integration
+@pytest.mark.empty_category
+@allure.feature("Item Management")
+@allure.story("Category Hidden When All Items Inactive")
+def test_category_hidden_when_all_items_inactive(browser_factory, endpoint_setup, table):
+    api = ItemManagementAPI()
+    timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
+    allure.dynamic.title(f"Category Hidden When All Items Inactive - {timestamp}")
+    [driver] = browser_factory("chrome")
+    menu_page = MenuPage(driver)
+    menu_page.navigate_to_main_menu()
+
+    category = api.get_category_with_least_items(menu_page)
+
+    with allure.step(f"Selected category: {category['category_name']} ({category['item_count']} items)"):
+        allure.attach(
+            json.dumps({
+                "Category Name": category['category_name'],
+                "Category ID": category['category_id'],
+                "Item Count": category['item_count'],
+                "Items": [f"{item['name']} ({item['id']})" for item in category['items']]
+            }, indent=2),
+            name="Category Details - Before",
+            attachment_type=allure.attachment_type.JSON
+        )
+
+        category_section = driver.find_element("css selector", f"section[data-categoryid='{category['category_id']}']")
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", category_section)
+        time.sleep(2)
+
+        allure.attach(
+            driver.get_screenshot_as_png(),
+            name=f"Category '{category['category_name']}' - Visible with {category['item_count']} items",
+            attachment_type=allure.attachment_type.PNG
+        )
+
+    with allure.step(f"Make all {category['item_count']} items inactive in '{category['category_name']}'"):
+        item_ids = [item['id'] for item in category['items']]
+        api.make_items_inactive(item_ids)
+
+    with allure.step("Restart browser"):
+        drivers = browser_factory("chrome")
+        new_driver = drivers[-1]
+        new_menu_page = MenuPage(new_driver)
+        new_menu_page.navigate_to_main_menu()
+
+    with allure.step(f"Verify category '{category['category_name']}' is hidden"):
+        visible = new_menu_page.get_all_category_buttons()
+        visible_names = [cat['name'] for cat in visible]
+        assert category['category_name'] not in visible_names, \
+            f"Category '{category['category_name']}' should be hidden when all items are inactive"
+
+        if category['neighbor_id']:
+            neighbor_section = new_driver.find_element("css selector",
+                                                       f"section[data-categoryid='{category['neighbor_id']}']")
+            new_driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", neighbor_section)
+            time.sleep(2)
+
+        allure.attach(
+            new_driver.get_screenshot_as_png(),
+            name=f"Category '{category['category_name']}' - Hidden (showing neighbor '{category['neighbor_name']}')",
+            attachment_type=allure.attachment_type.PNG
+        )
+
+    with allure.step(f"Restore all items in '{category['category_name']}'"):
+        api.make_items_active(item_ids)
+
+
+        drivers = browser_factory("chrome")
+        verify_driver = drivers[-1]
+        verify_menu_page = MenuPage(verify_driver)
+        verify_menu_page.navigate_to_main_menu()
+
+        restored_category_section = verify_driver.find_element("css selector",
+                                                               f"section[data-categoryid='{category['category_id']}']")
+        verify_driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", restored_category_section)
+        time.sleep(2)
+
+        allure.attach(
+            verify_driver.get_screenshot_as_png(),
+            name=f"Category '{category['category_name']}' - Restored and Visible",
+            attachment_type=allure.attachment_type.PNG
+        )

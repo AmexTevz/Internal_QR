@@ -153,11 +153,14 @@ class CheckoutPage(BasePage):
                 self.attach_note("Upsell items were not found")
 
         else:
-            no_thanks = self.find_element(CheckoutPageLocators.NO_THANKS, timeout=3)
-            if no_thanks:
-                self.click(no_thanks)
-                self.logger.info(f"Declined additional upsells")
-                self.attach_screenshot("Declined additional upsells")
+            try:
+                no_thanks = self.find_element(CheckoutPageLocators.NO_THANKS, timeout=2)
+                if no_thanks:
+                    self.click(no_thanks)
+                    self.logger.info(f"Declined additional upsells")
+                    self.attach_screenshot("Declined additional upsells")
+            except:
+                pass
 
     @allure.step("Get subtotal from checkout page")
     def get_tip_amount(self):
