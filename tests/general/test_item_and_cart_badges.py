@@ -43,7 +43,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [18]
+TABLES = [54]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.badge
@@ -53,6 +53,19 @@ TABLES = [18]
 @allure.story("Cart Badges")  # Optional - sub-category
 @allure.title("Verify Item and Cart Badges Update Correctly")
 def test_badges(browser_factory, endpoint_setup, table):
+    """
+    Test that item and cart badges update correctly when adding items.
+
+    Flow:
+    1. Navigate to main menu
+    2. Select random items (2 items × 3 quantity each)
+    3. Verify cart badge updates during selection
+    4. Add more quantity of an existing item (2 additional)
+    5. Verify cart badge shows correct total count
+    6. Verify individual item badges show correct quantities
+    7. Attach badge verification summary
+    """
+
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Verify Item and Cart Badges Update Correctly - {timestamp}")
     [chrome] = browser_factory("chrome")

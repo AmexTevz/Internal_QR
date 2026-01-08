@@ -6,19 +6,34 @@ from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.category_management import CategoryManagementAPI
 from datetime import datetime
 
-TABLES = [16]
+TABLES = [57]
 
 
 @pytest.mark.parametrize("table", TABLES)
+@pytest.mark.all
 @pytest.mark.integration
-@pytest.mark.category_availability
+@pytest.mark.category_inactive
 @allure.feature("Category Management")
-@allure.story("Category Availability by Time")
-@allure.title("Category Availability by Time")
-def test_category_unavailable_outside_hours(browser_factory, endpoint_setup, table):
+@allure.story("Category Active Status")
+@allure.title("Category Active Status")
+def test_category_hidden_when_inactive(browser_factory, endpoint_setup, table):
+    """
+    Test that categories hide when marked as inactive via API.
+
+    Flow:
+    1. Navigate to main menu
+    2. Select random visible category and capture original state
+    3. Mark category as inactive via API (Active: false)
+    4. Restart browser
+    5. Verify category is hidden from navigation
+    6. Scroll to neighboring category to show where hidden category should be
+    7. Restore category to active status via API
+    8. Restart browser and verify category is visible again
+    """
+
     api = CategoryManagementAPI()
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
-    allure.dynamic.title(f"Category Availability by Time - {timestamp}")
+    allure.dynamic.title(f"Category Active Status - {timestamp}")
     [driver] = browser_factory("chrome")
     menu_page = MenuPage(driver)
     menu_page.navigate_to_main_menu()
@@ -43,9 +58,8 @@ def test_category_unavailable_outside_hours(browser_factory, endpoint_setup, tab
             attachment_type=allure.attachment_type.PNG
         )
 
-    with allure.step(f"Make category '{category['name']}' unavailable"):
-        api.make_category_unavailable(category['id'], category['details'])
-
+    with allure.step(f"Mark category '{category['name']}' as inactive"):
+        api.make_category_inactive(category['id'], category['details'])
 
     with allure.step("Restart browser"):
         drivers = browser_factory("chrome")
@@ -62,7 +76,7 @@ def test_category_unavailable_outside_hours(browser_factory, endpoint_setup, tab
             neighbor_section = new_driver.find_element("css selector",
                                                        f"section[data-categoryid='{category['neighbor_id']}']")
             new_driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", neighbor_section)
-            time.sleep(3)
+            time.sleep(2)
 
         allure.attach(
             new_driver.get_screenshot_as_png(),
@@ -71,11 +85,10 @@ def test_category_unavailable_outside_hours(browser_factory, endpoint_setup, tab
         )
 
     with allure.step(f"Restore category '{category['name']}'"):
-        api.restore_category_times(
+        api.restore_category_active_status(
             category['id'],
             category['details'],
-            category['original_open_time'],
-            category['original_close_time']
+            category['original_active']
         )
 
         drivers = browser_factory("chrome")

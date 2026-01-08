@@ -59,33 +59,13 @@ class CheckoutPage(BasePage):
     def apply_charity(self):
         self.click(CheckoutPageLocators.CHARITY_TOGGLE)
         applied_charity = self.get_text_3(CheckoutPageLocators.CHARITY_AMOUNT)
-        applied_charity = float(applied_charity.strip())
+        applied_charity = float(applied_charity.replace('$','').strip())
         self.attach_screenshot("After applying the charity")
         self.attach_note(f"Charity amount: ${applied_charity}")
         return applied_charity
 
 
-    @allure.step("Get subtotal from checkout page")
-    def get_subtotal(self):
-        try:
-            self.is_element_displayed(CheckoutPageLocators.SUBTOTAL_VALUE, timeout=5)
-            self.logger.info("Subtotal element is displayed")
 
-            app_subtotal = self.wait_for_value_to_update(
-                CheckoutPageLocators.SUBTOTAL_VALUE,
-                initial_value="$0.00",
-                timeout=10,
-                name="Subtotal"
-            )
-            app_subtotal_value = float(app_subtotal.replace('$', '').strip())
-
-            self.logger.info(f"Subtotal retrieved from checkout: ${app_subtotal_value:.2f}")
-            self.attach_note(f"Subtotal: ${app_subtotal_value:.2f}")
-            self.attach_screenshot("Subtotal on checkout page")
-            return app_subtotal_value
-        except Exception as e:
-            self.logger.error(f"Failed to get subtotal from checkout: {str(e)}")
-            self.logger.exception(f"Failed to get subtotal from checkout: {str(e)}")
 
 
     @allure.step("Get check and table numbers from checkout page")
@@ -115,7 +95,6 @@ class CheckoutPage(BasePage):
                 table_num = int(table_number)
 
                 self.logger.info(f"Table number retrieved from checkout: {table_num}")
-                self.attach_note(f"Table number: {table_num}")
                 return table_num
         except Exception as e:
             self.logger.error(f"Failed to get table number from checkout: {str(e)}")
@@ -128,12 +107,12 @@ class CheckoutPage(BasePage):
         # Click PAY button
         self.click(CheckoutPageLocators.PAY_BUTTON)
         self.logger.info(f"Clicked Pay button")
-        self.attach_note(f"Clicked Pay button")
-        self.attach_screenshot("The list of upsell items")
+
         if upsell:
             info = {}
             try:
-                upsell_items = self.find_elements(CheckoutPageLocators.UPSELL_ITEMS, timeout=5)
+                self.attach_screenshot("The list of upsell items")
+                upsell_items = self.find_elements(CheckoutPageLocators.UPSELL_ITEMS, timeout=3)
                 upsell_choice = random.choice(upsell_items)
                 self.click(upsell_choice)
                 upsell_item_name = self.get_text(CheckoutPageLocators.UPSELL_ITEM_NAME)
@@ -146,11 +125,12 @@ class CheckoutPage(BasePage):
                     info['price'] = upsell_price
                 self.attach_screenshot(f"Selected upsell item: {info['name']} - ${info['price']:.2f}")
                 self.click(CheckoutPageLocators.ADD_BUTTON)
-                return info
+                return True
 
             except:
                 self.logger.info("Upsell items were not found")
                 self.attach_note("Upsell items were not found")
+                return False
 
         else:
             try:
@@ -162,7 +142,7 @@ class CheckoutPage(BasePage):
             except:
                 pass
 
-    @allure.step("Get subtotal from checkout page")
+    @allure.step("Get subtotal amount from checkout page")
     def get_tip_amount(self):
         try:
             self.is_element_displayed(CheckoutPageLocators.SUBTOTAL_VALUE, timeout=5)
@@ -174,6 +154,44 @@ class CheckoutPage(BasePage):
             self.attach_note(f"Tip: ${tip_value:.2f}")
 
             return tip_value
+        except Exception as e:
+            self.logger.error(f"Failed to get subtotal from checkout: {str(e)}")
+            self.logger.exception(f"Failed to get subtotal from checkout: {str(e)}")
+
+    @allure.step("Get tax amount from checkout page")
+    def get_tax_amount(self):
+        try:
+            self.is_element_displayed(CheckoutPageLocators.TAXES_VALUE, timeout=5)
+
+            tax_value = self.get_text_3(CheckoutPageLocators.TAXES_VALUE)
+            tax_value = float(tax_value.replace('$', '').strip())
+
+            self.logger.info(f"Tip retrieved from checkout: ${tax_value:.2f}")
+            self.attach_note(f"Tip: ${tax_value:.2f}")
+
+            return tax_value
+        except Exception as e:
+            self.logger.error(f"Failed to get tax from checkout: {str(e)}")
+            self.logger.exception(f"Failed to get tax from checkout: {str(e)}")
+
+    @allure.step("Get subtotal from checkout page")
+    def get_subtotal(self):
+        try:
+            self.is_element_displayed(CheckoutPageLocators.SUBTOTAL_VALUE, timeout=5)
+            self.logger.info("Subtotal element is displayed")
+
+            app_subtotal = self.wait_for_value_to_update(
+                CheckoutPageLocators.SUBTOTAL_VALUE,
+                initial_value="$0.00",
+                timeout=10,
+                name="Subtotal"
+            )
+            app_subtotal_value = float(app_subtotal.replace('$', '').strip())
+
+            self.logger.info(f"Subtotal retrieved from checkout: ${app_subtotal_value:.2f}")
+            self.attach_note(f"Subtotal: ${app_subtotal_value:.2f}")
+            self.attach_screenshot("Subtotal on checkout page")
+            return app_subtotal_value
         except Exception as e:
             self.logger.error(f"Failed to get subtotal from checkout: {str(e)}")
             self.logger.exception(f"Failed to get subtotal from checkout: {str(e)}")
@@ -199,6 +217,20 @@ class CheckoutPage(BasePage):
     def choose_cash_tip(self):
         self.click(CheckoutPageLocators.CASH_TIP)
 
+    def calculate_expected_total(self):
+
+        subtotal = self.get_subtotal()
+        tax = self.get_tax_amount()
+        tip = self.get_tip_amount()
+        calculated_total = round(subtotal + tax + tip, 2)
+
+        self.logger.info(
+            f"Calculated total: ${calculated_total:.2f} "
+            f"(${subtotal:.2f} + ${tax:.2f} + ${tip:.2f})"
+        )
+
+
+        return calculated_total
 
 
 

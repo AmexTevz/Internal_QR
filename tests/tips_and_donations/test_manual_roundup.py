@@ -47,7 +47,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [24]
+TABLES = [66]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.tips_and_donations
@@ -57,6 +57,17 @@ TABLES = [24]
 @allure.story("Checkout")
 @allure.title("Behaviour when total is a round number")
 def test_manual_roundup(browser_factory, endpoint_setup, table):
+    """
+    Test that charity roundup works when total is already a round number.
+
+    Flow:
+    1. Navigate to main menu and select item
+    2. Place order and navigate to checkout
+    3. Using custom tip roundup the total price
+    4. Apply charity donation
+    5. Verify charity amount is not $0 (should be $1 when total is round number)
+    """
+
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
@@ -92,7 +103,6 @@ def test_manual_roundup(browser_factory, endpoint_setup, table):
 
                 checkout_page.manage_tips(manual_roundup=True)
                 charity_applied = checkout_page.apply_charity()
-                time.sleep(15)
                 check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied - should be $1")
 
     except Exception as e:

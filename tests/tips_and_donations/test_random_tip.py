@@ -7,7 +7,6 @@ from src.data.endpoints.get_details import get_check_details
 from src.pages.store.menu_page import MenuPage
 from src.pages.store.checkout_page import CheckoutPage
 from src.pages.store.cart_page import CartPage
-from src.pages.store.payment_page import PaymentPage
 from src.data.endpoints.close_table import close_table
 import pytest_check as check
 
@@ -47,7 +46,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [26]
+TABLES = [68]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.tips_and_donations
@@ -57,6 +56,16 @@ TABLES = [26]
 @allure.story("Checkout")
 @allure.title("Test with random tip option")
 def test_random_tip(browser_factory, endpoint_setup, table):
+    """
+    Test that random tip option applies a non-zero tip amount.
+
+    Flow:
+    1. Navigate to main menu and select item
+    2. Place order and navigate to checkout
+    3. Apply random tip option (18%, 20%, or 22%)
+    4. Verify tip amount is greater than $0
+    """
+
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
@@ -92,7 +101,7 @@ def test_random_tip(browser_factory, endpoint_setup, table):
 
                 checkout_page.manage_tips()
                 tip = checkout_page.get_tip_amount()
-                check.not_equal(tip, 0.00, f"Charity Fail: $0 was applied - should be $1")
+                check.not_equal(tip, 0.00, f"Tip Fail: $0 was applied")
 
     except Exception as e:
         close_table()

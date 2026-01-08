@@ -55,7 +55,7 @@ def category_has_available_items(category_id, menu_data):
     return False
 
 
-TABLES = [19]
+TABLES = [53]
 
 
 @pytest.mark.parametrize("table", TABLES)
@@ -65,6 +65,21 @@ TABLES = [19]
 @allure.feature("Categories")
 @allure.title("Category Navigation and API Verification")
 def test_category_navigation_and_api_verification(browser_factory, endpoint_setup, table):
+    """
+    Test that UI categories match API data and respect time windows.
+
+    Flow:
+    1. Navigate to main menu
+    2. Get all category buttons from UI
+    3. Get all categories and active categories from API
+    4. For each UI category, verify navigation works
+    5. Verify category is within its time window (OpenTime/CloseTime)
+    6. Verify category has Active=true in API
+    7. Check for missing categories (active in API, in time window, has items, but not in UI)
+    8. Check for inactive categories incorrectly showing in UI
+    9. Attach summary of missing and inactive categories
+    """
+
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Category Navigation and API Verification - {timestamp}")
     [chrome] = browser_factory("chrome")

@@ -1,6 +1,6 @@
 from selenium.webdriver.common.by import By
 
-class MenuContents:
+class MenuPageLocators:
     RESTAURANT_NAME = (By.CSS_SELECTOR, '#resturant-name')
     ITEMS = (By.CSS_SELECTOR, '.menu-list-row')
     MENU_ITEMS = (By.CSS_SELECTOR, '.menu-list-row')
@@ -30,6 +30,8 @@ class MenuContents:
     MENU_SECTION_TITLE = (By.CSS_SELECTOR, '.menu-section-title')
     CATEGORY_PILLS = (By.CSS_SELECTOR, '.menu-category-pill')
     CATEGORY_LABEL = (By.CSS_SELECTOR, '.menu-category-label')
+    NO_RESULTS_FOUND = (By.CSS_SELECTOR, ".menu-empty")
+
 
     INITIAL_BUTTON = (By.CSS_SELECTOR, '#goto-main-page-button')
 

@@ -47,7 +47,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [25]
+TABLES = [67]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.tips_and_donations
@@ -57,6 +57,18 @@ TABLES = [25]
 @allure.story("Checkout")
 @allure.title("Test custom tip amount")
 def test_custom_tip(browser_factory, endpoint_setup, table):
+    """
+    Test system behavior when negative tip amount is entered.
+
+    Flow:
+    1. Navigate to main menu and select item
+    2. Place order and navigate to checkout
+    3. Select cash tip option
+    4. Enter negative tip amount (random -$9.99 to -$1.99)
+    5. Verify system either rejects negative tip or converts to positive
+    6. Check total matches expected behavior (unchanged or increased by absolute value)
+    """
+
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
@@ -92,7 +104,7 @@ def test_custom_tip(browser_factory, endpoint_setup, table):
 
                 checkout_page.choose_cash_tip()
                 initial_total = checkout_page.get_total()
-                custom_tip = round(random.uniform(-12.99, -2.99), 2)
+                custom_tip = round(random.uniform(-9.99, -1.99), 2)
                 checkout_page.manage_tips(custom_tip)
                 after_tip_total = checkout_page.get_total()
 

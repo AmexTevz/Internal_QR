@@ -47,7 +47,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [22]
+TABLES = [69]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.checkout_with_rounds
@@ -57,10 +57,31 @@ TABLES = [22]
 @allure.story("Checkout")
 @allure.title("Checkout Flow with Additional Rounds")
 def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
+    """
+    Test checkout flow with multiple ordering rounds before payment.
+
+    Flow:
+    1. Navigate to main menu
+    2. Verify logo exists and table number is correct
+    3. Select items and place initial order
+    4. Verify that the item and cart badges match the quantity of the selected items
+    5. Verify check number and table number in cart match API
+    6. Perform 2 additional reorder rounds
+    7. Navigate to checkout page
+    8. Verify total item count, table number, and check number
+    9. Verify subtotal matches API data
+    10. Add tip and apply charity donation
+    11. Verify total equals subtotal + tip + tax + donation
+    12. Navigate to payment page
+    13. Verify total amount matches between checkout and payment pages
+    14. Complete payment
+    15. Verify check number, breakdowns, and calculations on the final page are correct
+    """
+
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
-
+    attach_note("Checkout flow with multiple rounds.", "Test Description")
     menu_page = MenuPage(chrome)
     cart_page = CartPage(chrome)
     checkout_page = CheckoutPage(chrome)
@@ -72,7 +93,7 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
 
     try:
         with allure.step(f"Customer places the order on table {table}"):
-            with allure.step("First order round"):
+            with allure.step("Initial order"):
                 menu_page.navigate_to_main_menu()
                 menu_page.select_random_menu_items(num_items=num_items, quantity=quantity, verify_badges=True)
 
@@ -116,7 +137,7 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
                 api_subtotal = get_api_data('subtotal')
                 check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect")
 
-                checkout_page.manage_tips(25)
+                checkout_page.manage_tips(random.uniform(2.99, 9.99))
                 charity_applied = checkout_page.apply_charity()
                 check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
                 checkout_page_total = checkout_page.get_total()

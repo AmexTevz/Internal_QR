@@ -8,15 +8,30 @@ from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.item_management import ItemManagementAPI
 from datetime import datetime
 
-TABLES = [13]
+TABLES = [59]
 
 
 @pytest.mark.parametrize("table", TABLES)
+@pytest.mark.all
 @pytest.mark.integration
 @pytest.mark.item_inactive
 @allure.feature("Item Management")
 @allure.story("Item Hidden When Inactive")
 def test_item_hidden_when_inactive(browser_factory, endpoint_setup, table):
+    """
+    Test that individual item hides when marked as inactive.
+
+    Flow:
+    1. Navigate to main menu
+    2. Select random visible item
+    3. Scroll to item and capture original state
+    4. Make item inactive via API (Active: false)
+    5. Restart browser
+    6. Scroll to category where item was located
+    7. Verify item is hidden (element not found or not displayed)
+    8. Restore item to active via API
+    9. Restart browser and verify item is visible again
+    """
 
     api = ItemManagementAPI()
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")

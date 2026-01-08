@@ -48,7 +48,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [21]
+TABLES = [51]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.checkout
@@ -58,10 +58,30 @@ TABLES = [21]
 @allure.story("Checkout")
 @allure.title("Simple Checkout Flow")
 def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
+    """
+    Test checkout flow with multiple ordering rounds before payment.
+
+    Flow:
+    1. Navigate to main menu
+    2. Verify logo exists and table number is correct
+    3. Select items and place initial order
+    4. Verify that the item and cart badges match the quantity of the selected items
+    5. Verify check number and table number in cart match API
+    6. Navigate to checkout page
+    7. Verify total item count, table number, and check number
+    8. Verify subtotal matches API data
+    9. Do not add tip or charity
+    10. Verify total equals subtotal + tax
+    11. Navigate to payment page
+    12. Verify total amount matches between checkout and payment pages
+    13. Complete payment
+    14. Verify check number, breakdowns, and calculations on the final page are correct
+    """
+
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
-
+    attach_note("Checkout flow without tips or donations", "Test Description")
     menu_page = MenuPage(chrome)
     cart_page = CartPage(chrome)
     checkout_page = CheckoutPage(chrome)
@@ -118,8 +138,6 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
                 check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect")
 
                 checkout_page.manage_tips(0)
-                # charity_applied = checkout_page.apply_charity()
-                # check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
                 checkout_page_total = checkout_page.get_total()
 
         with allure.step(f"Customer navigates to payment page {table}"):
@@ -127,7 +145,6 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
                 payment_page_total = payment_page.get_total_amount()
                 check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
                 payment_page.make_the_payment()
-                time.sleep(60)
 
     except Exception as e:
         close_table()

@@ -1,7 +1,7 @@
 import time
 from selenium.common import TimeoutException
 from src.pages.base_page import BasePage
-from src.locators.store_locators import (MenuContents)
+from src.locators.store_locators import (MenuPageLocators)
 import random
 from selenium.webdriver.common.by import By
 from src.utils.logger import Logger
@@ -23,12 +23,12 @@ class MenuPage(BasePage):
     def navigate_to_main_menu(self):
         try:
             self.logger.info("Starting navigation to main menu")
-            if self.is_element_present(MenuContents.INITIAL_BUTTON):
+            if self.is_element_present(MenuPageLocators.INITIAL_BUTTON):
                 time.sleep(2)
                 # self.driver.refresh()
-                self.click(MenuContents.INITIAL_BUTTON)
+                self.click(MenuPageLocators.INITIAL_BUTTON)
             self.logger.info("Successfully navigated to main menu")
-            while not self.find_elements(MenuContents.MENU_ITEMS):
+            while not self.find_elements(MenuPageLocators.MENU_ITEMS):
                 self.driver.refresh()
                 time.sleep(1)
         except Exception as e:
@@ -38,7 +38,7 @@ class MenuPage(BasePage):
     @allure.step("Get order number")
     def order_number(self):
         try:
-            number = self.get_text_2(MenuContents.CHECK_NUMBER)
+            number = self.get_text_2(MenuPageLocators.CHECK_NUMBER)
             result = number.replace("#", "")
             self.logger.info(f"Order number retrieved: {result}")
             self.attach_note(f"Order number: {result}")
@@ -137,7 +137,7 @@ class MenuPage(BasePage):
         """Click the plus button to increase quantity"""
         try:
             for i in range(times):
-                plus_button = self.find_element(MenuContents.QTY_PLUS_BUTTON)
+                plus_button = self.find_element(MenuPageLocators.QTY_PLUS_BUTTON)
                 self.click(plus_button)
                 self.logger.debug(f"Clicked plus button ({i + 1}/{times})")
         except Exception as e:
@@ -147,8 +147,8 @@ class MenuPage(BasePage):
     def get_cart_badge_count(self):
         """Get the total count shown on cart icon"""
         try:
-            if self.is_element_displayed(MenuContents.CART_BADGE):
-                count_text = self.get_text(MenuContents.CART_BADGE)
+            if self.is_element_displayed(MenuPageLocators.CART_BADGE):
+                count_text = self.get_text(MenuPageLocators.CART_BADGE)
                 count = int(count_text) if count_text else 0
                 self.logger.info(f"Cart badge count: {count}")
                 return count
@@ -219,7 +219,7 @@ class MenuPage(BasePage):
 
             # Click ADD button
             with allure.step(f"Add to cart"):
-                add_button = self.find_element(MenuContents.ADD_BUTTON)
+                add_button = self.find_element(MenuPageLocators.ADD_BUTTON)
                 self.click(add_button)
 
             self.cart_items[item_id] = new_count
@@ -261,10 +261,10 @@ class MenuPage(BasePage):
 
         self.logger.info(f"Starting to select {num_items} random menu items (qty: {quantity} each)")
         try:
-            while not self.find_elements(MenuContents.MENU_ITEMS):
+            while not self.find_elements(MenuPageLocators.MENU_ITEMS):
                 self.driver.refresh()
                 time.sleep(1)
-            items = self.find_elements(MenuContents.ITEMS)
+            items = self.find_elements(MenuPageLocators.ITEMS)
 
             if not items:
                 return {'items': [], 'total': 0.0, 'count': 0}
@@ -283,8 +283,8 @@ class MenuPage(BasePage):
 
                     self.click(item)
 
-                    if self.is_element_displayed(MenuContents.ITEM_PRICE):
-                        price_text = self.get_text(MenuContents.ITEM_PRICE)
+                    if self.is_element_displayed(MenuPageLocators.ITEM_PRICE):
+                        price_text = self.get_text(MenuPageLocators.ITEM_PRICE)
                         base_price = float(price_text.replace('$', '').replace(',', ''))
                     else:
                         base_price = 0.0
@@ -303,7 +303,7 @@ class MenuPage(BasePage):
 
                     # Click ADD button
                     with allure.step(f"Add '{item_name}' to cart"):
-                        add_button = self.find_element(MenuContents.ADD_BUTTON)
+                        add_button = self.find_element(MenuPageLocators.ADD_BUTTON)
                         self.click(add_button)
 
                     # Track this item in cart
@@ -470,7 +470,7 @@ class MenuPage(BasePage):
     @allure.step("Verify logo exists")
     def verify_logo_exists(self):
         try:
-            if self.is_element_present(MenuContents.LOGO):
+            if self.is_element_present(MenuPageLocators.LOGO):
                 self.logger.info("Logo verification passed")
                 self.attach_note("Logo exists on page")
                 self.attach_screenshot("Logo verified")
@@ -489,7 +489,7 @@ class MenuPage(BasePage):
     def menu_page_table_num(self):
         try:
             element = self.wait_for_element_with_text(
-                MenuContents.TABLE_NUMBER_MENU_PAGE,
+                MenuPageLocators.TABLE_NUMBER_MENU_PAGE,
                 timeout=3
             )
 
@@ -504,58 +504,106 @@ class MenuPage(BasePage):
             self.logger.error(f"Failed to get table number: {str(e)}")
             self.logger.exception("Failed to get table number from the menu page")
 
-
     def search_multiple_keywords(self, keywords: list[str]) -> dict:
-        while not self.find_elements(MenuContents.MENU_ITEMS):
+        """
+        Search for multiple keywords and return results.
+        Keeps search open and just clears field between keywords.
+        Handles cases where no results are found gracefully.
+        """
+        while not self.find_elements(MenuPageLocators.MENU_ITEMS):
             self.driver.refresh()
             time.sleep(1)
+
         all_results = {}
+
         try:
-            for keyword in keywords:
+            for idx, keyword in enumerate(keywords):
                 try:
-                    search_button = self.wait_for_element_visible(MenuContents.SEARCH_BUTTON, timeout=5)
-                    if search_button:
-                        self.click(search_button)
-                        search_input = self.wait_for_element_visible(MenuContents.SEARCH_INPUT)
-                        search_input.clear()
-                        self.send_keys(MenuContents.SEARCH_INPUT, keyword)
-                        self.logger.info(f"Searching for '{keyword}'")
-                        time.sleep(1)
-                        results = self.find_elements(MenuContents.MENU_ITEMS)
-                        self.attach_screenshot(f"Results for '{keyword}'")
-                        result_texts = []
-                        for result in results:
-                            name = description = ""
-                            try:
-                                name_elem = result.find_element(*MenuContents.MENU_ITEM_TITLE)
-                                name = name_elem.text.strip()
-                                self.logger.debug(f"Found name: {name}")
-                            except Exception:
-                                pass
-                            try:
-                                desc_elem = result.find_element(*MenuContents.MENU_ITEM_DESCRIPTION)
-                                description = desc_elem.text.strip()
-                                self.logger.debug(f"Found description: {description}")
-                            except Exception:
-                                pass
-                            full_text = f"{name} {description}".strip()
-                            result_texts.append(full_text)
-                            self.logger.debug(f"Found search result: {full_text}")
-                        all_results[keyword] = result_texts
+                    # Only click search button for the first keyword
+                    if idx == 0:
+                        search_button = self.wait_for_element_visible(MenuPageLocators.SEARCH_BUTTON, timeout=5)
+                        if search_button:
+                            self.click(search_button)
+
+                    # Get search input and search for keyword
+                    search_input = self.wait_for_element_visible(MenuPageLocators.SEARCH_INPUT)
+                    search_input.clear()
+                    self.send_keys(MenuPageLocators.SEARCH_INPUT, keyword)
+                    self.logger.info(f"Searching for '{keyword}'")
+                    time.sleep(1)
+
+                    # Check if "No items found" message appears
+                    try:
+                        no_results = self.driver.find_element(By.CSS_SELECTOR, ".menu-empty")
+                        if no_results.is_displayed():
+                            self.logger.info(f"No results found for '{keyword}'")
+                            self.attach_screenshot(f"No results for '{keyword}'")
+                            all_results[keyword] = []
+                            # Just continue to next keyword (keep search open, field will clear in next iteration)
+                            continue
+                    except:
+                        pass  # Element not found, proceed with normal search
+
+                    # Normal search results
+                    results = self.find_elements(MenuPageLocators.MENU_ITEMS)
+
+                    if not results:
+                        # Double-check: no results and no menu-empty div
+                        self.logger.info(f"No results found for '{keyword}'")
+                        self.attach_screenshot(f"No results for '{keyword}'")
+                        all_results[keyword] = []
+                        # Just continue (keep search open)
+                        continue
+
+                    self.attach_screenshot(f"Results for '{keyword}'")
+                    result_texts = []
+
+                    for result in results:
+                        name = description = ""
+                        try:
+                            name_elem = result.find_element(*MenuPageLocators.MENU_ITEM_TITLE)
+                            name = name_elem.text.strip()
+                            self.logger.debug(f"Found name: {name}")
+                        except Exception:
+                            pass
+
+                        try:
+                            desc_elem = result.find_element(*MenuPageLocators.MENU_ITEM_DESCRIPTION)
+                            description = desc_elem.text.strip()
+                            self.logger.debug(f"Found description: {description}")
+                        except Exception:
+                            pass
+
+                        full_text = f"{name} {description}".strip()
+                        result_texts.append(full_text)
+                        self.logger.debug(f"Found search result: {full_text}")
+
+                    all_results[keyword] = result_texts
+
                 except Exception as e:
-                    self.logger.exception(f"Search failed for '{keyword}': {e}")
+                    self.logger.warning(f"Search failed for '{keyword}': {e}")
                     all_results[keyword] = []
+
         except TimeoutException:
             self.logger.warning("Search button was not visible before timeout.")
         except Exception as e:
             self.logger.exception(f"Failed during multi-search: {str(e)}")
+        finally:
+            # Close search after ALL keywords are done
+            try:
+                search_input = self.driver.find_element(*MenuPageLocators.SEARCH_INPUT)
+                search_input.clear()
+                time.sleep(0.3)
+            except:
+                pass
+
         return all_results
 
     def category_navigation_sync(self):
-        while not self.find_elements(MenuContents.MENU_ITEMS):
+        while not self.find_elements(MenuPageLocators.MENU_ITEMS):
             self.driver.refresh()
             time.sleep(1)
-            self.logger.info(f"Searching for '{MenuContents.MENU_ITEMS}'")
+            self.logger.info(f"Searching for '{MenuPageLocators.MENU_ITEMS}'")
         categories = self.find_elements((By.CSS_SELECTOR, ".menu-category-label"))
         assert categories, "No categories found at top bar"
 
@@ -565,39 +613,39 @@ class MenuPage(BasePage):
             self.driver.execute_script("arguments[0].scrollIntoView(true);", category)
             category.click()
 
-            active_category = self.find_element(MenuContents.ACTIVE_CATEGORY_SLIDER)
+            active_category = self.find_element(MenuPageLocators.ACTIVE_CATEGORY_SLIDER)
             expected_lower = category_name.lower()
             active_text = active_category.text.lower()
 
             if expected_lower not in active_text:
                 self.driver.execute_script("window.scrollBy(0, -120);")
                 time.sleep(0.5)
-                self.find_element(MenuContents.ACTIVE_CATEGORY_SLIDER).text.lower()
+                self.find_element(MenuPageLocators.ACTIVE_CATEGORY_SLIDER).text.lower()
 
 
-            sections = self.find_elements(MenuContents.MENU_SECTION_TITLE)
+            sections = self.find_elements(MenuPageLocators.MENU_SECTION_TITLE)
             matched_section = next((s for s in sections if category_name.lower() in s.text.lower()), None)
             assert matched_section, f"No section found for category '{category_name}'"
             self.driver.execute_script("return arguments[0].getBoundingClientRect().middle;",
                                                      matched_section)
 
-        for section in self.find_elements(MenuContents.MENU_SECTION_TITLE):
+        for section in self.find_elements(MenuPageLocators.MENU_SECTION_TITLE):
             section_name = section.text.strip()
             self.logger.info(f"Checking scroll sync for section '{section_name}'")
             self.driver.execute_script("arguments[0].scrollIntoView(true);", section)
             self.wait_until(
-                lambda: section_name.lower() in self.find_element(MenuContents.ACTIVE_CATEGORY_SLIDER).text.lower(),
+                lambda: section_name.lower() in self.find_element(MenuPageLocators.ACTIVE_CATEGORY_SLIDER).text.lower(),
                 timeout=5,
                 description=f"active category to switch to {section_name}"
             )
-            active = self.find_element(MenuContents.ACTIVE_CATEGORY_SLIDER)
+            active = self.find_element(MenuPageLocators.ACTIVE_CATEGORY_SLIDER)
             assert section_name.lower() in active.text.lower(), f"Category slider did not switch to '{section_name}'"
 
 
     @allure.step("Navigate to basket")
     def go_to_basket(self):
         try:
-            self.click(MenuContents.CART_ICON)
+            self.click(MenuPageLocators.CART_ICON)
             self.logger.info("Successfully navigated to basket")
             self.attach_screenshot("Basket page")
         except Exception as e:
@@ -605,22 +653,16 @@ class MenuPage(BasePage):
             self.logger.exception(f"Failed to go to basket: {str(e)}")
 
 
-    @allure.step("Get all category buttons with IDs")
     def get_all_category_buttons(self):
-        """
-        Get all category pill buttons with their IDs and names.
 
-        Returns:
-            list: List of dicts with 'element', 'id', 'name' for each category button
-        """
         try:
-            category_buttons = self.find_elements(MenuContents.CATEGORY_PILLS)
+            category_buttons = self.find_elements(MenuPageLocators.CATEGORY_PILLS)
             categories = []
 
             for button in category_buttons:
                 try:
                     category_id = button.get_attribute('id')
-                    label_element = button.find_element(*MenuContents.CATEGORY_LABEL)
+                    label_element = button.find_element(*MenuPageLocators.CATEGORY_LABEL)
                     category_name = label_element.text.strip()
 
                     if category_id and category_name:
@@ -653,7 +695,7 @@ class MenuPage(BasePage):
             bool: True if successful, False otherwise
         """
         try:
-            category_button = self.find_element(MenuContents.category_button_by_id(category_id))
+            category_button = self.find_element(MenuPageLocators.category_button_by_id(category_id))
 
             if not category_button:
                 self.logger.error(f"Category button not found for '{category_name}' (ID: {category_id})")
@@ -714,7 +756,7 @@ class MenuPage(BasePage):
             list: List of active category IDs
         """
         try:
-            active_categories = self.find_elements(MenuContents.ACTIVE_CATEGORY_SLIDER)
+            active_categories = self.find_elements(MenuPageLocators.ACTIVE_CATEGORY_SLIDER)
             active_ids = []
 
             for cat in active_categories:
@@ -747,7 +789,7 @@ class MenuPage(BasePage):
             self.logger.info(f"Waiting for section '{expected_title}' to become visible in viewport...")
 
             def section_is_visible():
-                sections = self.find_elements(MenuContents.MENU_SECTION_TITLE)
+                sections = self.find_elements(MenuPageLocators.MENU_SECTION_TITLE)
                 for section in sections:
                     try:
                         section_text = section.text.strip()
@@ -813,7 +855,7 @@ class MenuPage(BasePage):
             str: The visible section title text, or None if none found
         """
         try:
-            sections = self.find_elements(MenuContents.MENU_SECTION_TITLE)
+            sections = self.find_elements(MenuPageLocators.MENU_SECTION_TITLE)
 
             for section in sections:
                 try:
@@ -927,14 +969,14 @@ class MenuPage(BasePage):
 
     @allure.step("Get {num_items} random menu items for search testing")
     def get_random_menu_items_for_search(self, num_items=5):
-        self.click(MenuContents.SEARCH_CANCEL)
+        self.click(MenuPageLocators.SEARCH_CANCEL)
         time.sleep(1)
         try:
-            while not self.find_elements(MenuContents.MENU_ITEMS):
+            while not self.find_elements(MenuPageLocators.MENU_ITEMS):
                 self.driver.refresh()
                 time.sleep(1)
 
-            items = self.find_elements(MenuContents.ITEMS)
+            items = self.find_elements(MenuPageLocators.ITEMS)
 
             if not items:
                 self.logger.warning("No menu items found")
@@ -979,7 +1021,7 @@ class MenuPage(BasePage):
 
         try:
             # Click search button
-            search_button = self.wait_for_element_visible(MenuContents.SEARCH_BUTTON, timeout=5)
+            search_button = self.wait_for_element_visible(MenuPageLocators.SEARCH_BUTTON, timeout=5)
             if not search_button:
                 self.logger.error("Search button not found")
                 return result
@@ -987,13 +1029,13 @@ class MenuPage(BasePage):
             self.click(search_button)
 
             # Enter search query
-            search_input = self.wait_for_element_visible(MenuContents.SEARCH_INPUT)
+            search_input = self.wait_for_element_visible(MenuPageLocators.SEARCH_INPUT)
             if not search_input:
                 self.logger.error("Search input not found")
                 return result
 
             search_input.clear()
-            self.send_keys(MenuContents.SEARCH_INPUT, item_name)
+            self.send_keys(MenuPageLocators.SEARCH_INPUT, item_name)
             self.logger.info(f"Searching for exact item name: '{item_name}'")
             result['searched'] = True
 
@@ -1001,7 +1043,7 @@ class MenuPage(BasePage):
             time.sleep(1)
 
             # Get search results
-            results = self.find_elements(MenuContents.MENU_ITEMS)
+            results = self.find_elements(MenuPageLocators.MENU_ITEMS)
             result['total_results'] = len(results)
 
             if not results:
@@ -1015,7 +1057,7 @@ class MenuPage(BasePage):
             # Get the first result's name
             try:
                 first_result = results[0]
-                first_name_elem = first_result.find_element(*MenuContents.MENU_ITEM_TITLE)
+                first_name_elem = first_result.find_element(*MenuPageLocators.MENU_ITEM_TITLE)
                 first_result_name = first_name_elem.text.strip()
                 result['first_result_name'] = first_result_name
 

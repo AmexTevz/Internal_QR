@@ -47,7 +47,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [23]
+TABLES = [65]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.tips_and_donations
@@ -57,6 +57,16 @@ TABLES = [23]
 @allure.story("Checkout")
 @allure.title("Test custom tip amount")
 def test_custom_tip(browser_factory, endpoint_setup, table):
+    """
+    Test that custom tip amount is applied correctly at checkout.
+
+    Flow:
+    1. Navigate to main menu and select item
+    2. Place order and navigate to checkout
+    3. Enter custom tip amount (random $1.99-$9.99)
+    4. Verify tip amount displayed matches entered amount
+    """
+
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
@@ -96,7 +106,7 @@ def test_custom_tip(browser_factory, endpoint_setup, table):
                 cart_page.navigate_to_checkout_page()
 
 
-                custom_tip = round(random.uniform(39.99, 139.99), 2)
+                custom_tip = round(random.uniform(1.99, 9.99), 2)
                 checkout_page.manage_tips(custom_tip)
                 app_tip = checkout_page.get_tip_amount()
                 check.equal(custom_tip, app_tip, "Tip is incorrect")

@@ -6,15 +6,31 @@ from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.item_management import ItemManagementAPI
 from datetime import datetime
 
-TABLES = [14]
+TABLES = [58]
 
 
 @pytest.mark.parametrize("table", TABLES)
+@pytest.mark.all
 @pytest.mark.integration
 @pytest.mark.empty_category
 @allure.feature("Item Management")
 @allure.story("Category Hidden When All Items Inactive")
 def test_category_hidden_when_all_items_inactive(browser_factory, endpoint_setup, table):
+    """
+    Test that category hides when all its items are marked inactive.
+
+    Flow:
+    1. Navigate to main menu
+    2. Select category with the least items (minimize API calls)
+    3. Capture original state with item count
+    4. Make all items in category inactive via API
+    5. Restart browser
+    6. Verify category is hidden from navigation
+    7. Scroll to neighboring category to show where hidden category should be
+    8. Restore all items to active via API
+    9. Restart browser and verify category is visible again
+    """
+
     api = ItemManagementAPI()
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Category Hidden When All Items Inactive - {timestamp}")

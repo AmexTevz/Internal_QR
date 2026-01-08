@@ -36,7 +36,6 @@ class CartPage(BasePage):
                 table_number = table_number.split()[-1].strip()
                 table_num = int(table_number)
                 self.logger.info(f"Table number retrieved from basket: {table_num}")
-                self.attach_note(f"Table number: {table_num}")
                 return table_num
         except Exception as e:
             self.logger.error(f"Failed to get table number from basket: {str(e)}")
@@ -69,13 +68,11 @@ class CartPage(BasePage):
 
             self.click(CartPageLocators.PLACE_ORDER)
             self.logger.info("Place order button was clicked")
-            self.attach_note("Place order button clicked")
             self.attach_screenshot("After placing order")
             self.wait_for_element_visible(CartPageLocators.CONTINUE_ORDERING)
             if self.is_element_present(CartPageLocators.CONTINUE_ORDERING, timeout=3):
                 self.click(CartPageLocators.CONTINUE_ORDERING)
                 self.logger.info("Successfully navigated back to menu page")
-                self.attach_note("Successfully navigated back to menu page")
                 self.attach_screenshot("Successfully navigated back to menu page")
         except Exception as e:
             self.logger.error(f"Failed to place order: {str(e)}")

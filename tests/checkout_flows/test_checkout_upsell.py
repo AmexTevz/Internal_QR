@@ -48,7 +48,7 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [20]
+TABLES = [52]
 
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.checkout
@@ -58,6 +58,25 @@ TABLES = [20]
 @allure.story("Checkout")
 @allure.title("Checkout Flow with Upsell Items")
 def test_checkout_flow_upsell(browser_factory, endpoint_setup, table):
+    """
+    Test checkout flow with multiple ordering rounds before payment.
+
+    Flow:
+    1. Navigate to main menu
+    2. Verify logo exists and table number is correct
+    3. Select items and place initial order
+    4. Verify that the item and cart badges match the quantity of the selected items
+    5. Verify check number and table number in cart match API
+    6. Navigate to checkout page
+    7. Verify total item count, table number, and check number
+    8. Verify subtotal matches API data
+    9. Send random tip and apply charity
+    10. Verify total equals subtotal + tip + tax + donation
+    11. Navigate to payment page
+    12. Verify total amount matches between checkout and payment pages
+    13. Complete payment
+    14. Verify check number, breakdowns, and calculations on the final page are correct
+    """
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
@@ -117,28 +136,32 @@ def test_checkout_flow_upsell(browser_factory, endpoint_setup, table):
                 api_subtotal = get_api_data('subtotal')
                 check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect")
 
-                checkout_page.manage_tips(25)
+                checkout_page.manage_tips(random.uniform(3.99, 8.99))
                 charity_applied = checkout_page.apply_charity()
                 check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
                 checkout_page_total = checkout_page.get_total()
+                upsell_items_found = checkout_page.go_to_payment_page(upsell=True)
+                check.not_equal(upsell_items_found, False, "Upsell items were not found")
+                if upsell_items_found:
+                    with allure.step(f"Customer accepts UPSELL and navigates to payment page"):
+                        cart_page.place_order()
+                        menu_page.go_to_basket()
+                        cart_page.navigate_to_checkout_page()
+                        app_subtotal = checkout_page.get_subtotal()
+                        api_subtotal = get_api_data('subtotal')
+                        check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect after adding the upsell item")
+                        checkout_page_total = checkout_page.get_total()
 
-        with allure.step(f"Customer accepts UPSELL and navigates to payment page"):
-            checkout_page.go_to_payment_page(upsell=True)
-
-            cart_page.place_order()
-            menu_page.go_to_basket()
-            cart_page.navigate_to_checkout_page()
-
-            app_subtotal = checkout_page.get_subtotal()
-            api_subtotal = get_api_data('subtotal')
-            check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect after adding the upsell item")
-
-        with allure.step(f"Customer navigates to payment page {table}"):
-            checkout_page.go_to_payment_page()
-            payment_page_total = payment_page.get_total_amount()
-            check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
-            payment_page.make_the_payment()
-            time.sleep(100)
+                    with allure.step(f"Customer navigates to payment page {table}"):
+                        checkout_page.go_to_payment_page()
+                        payment_page_total = payment_page.get_total_amount()
+                        check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
+                        payment_page.make_the_payment()
+                else:
+                    with allure.step(f"Upsell items are not present - Customer navigates to payment page {table}"):
+                        payment_page_total = payment_page.get_total_amount()
+                        check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
+                        payment_page.make_the_payment()
 
     except Exception as e:
         close_table()

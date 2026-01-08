@@ -269,13 +269,16 @@ class ItemManagementAPI:
             self.logger.error(f"Failed to restore items to active: {str(e)}")
             raise
 
-    def get_random_visible_item(self, menu_page, exclude_alcohol_categories=True):
+    def get_random_visible_item(self, menu_page, exclude_alcohol_categories=True,
+                                exclude_items_with_upgrades=False, exclude_upsell_categories=True):
         """
         Get a random item that's currently visible in the UI.
 
         Args:
             menu_page: MenuPage instance
             exclude_alcohol_categories: Exclude items from alcohol categories
+            exclude_items_with_upgrades: Exclude items that have upgrade options
+            exclude_upsell_categories: Exclude items from Upsell/Upgrades categories
 
         Returns:
             dict: {
@@ -294,7 +297,7 @@ class ItemManagementAPI:
         visible_ui = menu_page.get_all_category_buttons()
         visible_category_names = [cat['name'] for cat in visible_ui]
 
-        # Build list of category IDs and their alcohol status
+        # Build list of category IDs and their properties
         category_info = {}
         for item in items_data:
             for category in item.get('Categories', []):
@@ -303,7 +306,8 @@ class ItemManagementAPI:
                 if cat_name in visible_category_names:
                     category_info[cat_id] = {
                         'name': cat_name,
-                        'is_alcohol': category.get('IsAlcohol', False)
+                        'is_alcohol': category.get('IsAlcohol', False),
+                        'is_upsell': cat_name.lower() in ['upsell', 'upgrades', 'upgrade']
                     }
 
         # Get all active, in-stock items from visible categories
@@ -314,11 +318,20 @@ class ItemManagementAPI:
             if item.get('IsOutOfStock', False):
                 continue
 
+            # Skip items with upgrades if requested
+            if exclude_items_with_upgrades and item.get('Upgrade'):
+                continue
+
             # Check if item belongs to any visible category
             for category in item.get('Categories', []):
                 cat_id = category.get('ID')
                 if cat_id in category_info:
+                    # Skip alcohol categories if requested
                     if exclude_alcohol_categories and category_info[cat_id]['is_alcohol']:
+                        continue
+
+                    # Skip upsell/upgrades categories if requested
+                    if exclude_upsell_categories and category_info[cat_id]['is_upsell']:
                         continue
 
                     available_items.append({
@@ -377,6 +390,7 @@ class ItemManagementAPI:
         """
         Remove item from all categories by setting Categories: [].
         Item will disappear from UI. If item is only item in a category, category will also disappear.
+        Uses minimal payload since item won't be in catalog after removal.
 
         Args:
             item_id: Item ID to remove from categories
@@ -420,6 +434,7 @@ class ItemManagementAPI:
     def restore_item_to_categories(self, item_id, category_ids, property_id="33", revenue_center_id="810", username="atevzadze"):
         """
         Restore item to its original categories.
+        Uses minimal payload since item may not be in catalog after removal from all categories.
 
         Args:
             item_id: Item ID to restore
@@ -456,6 +471,53 @@ class ItemManagementAPI:
             response = requests.post(self.base_url, headers=self.management_headers, json=payload, timeout=30)
             response.raise_for_status()
             self.logger.info(f"Successfully restored item {item_id} to {len(category_ids)} categories")
+            return response.json()
+        except Exception as e:
+            self.logger.error(f"Failed to restore item to categories: {str(e)}")
+            raise
+
+    def restore_item_to_categories_with_details(self, item_id, category_ids, item_details,
+                                                property_id="33", revenue_center_id="810", username="atevzadze"):
+        """
+        Restore item to its original categories using preserved item details.
+        Use this when item was removed from all categories and is no longer in catalog.
+
+        Args:
+            item_id: Item ID to restore
+            category_ids: List of category IDs (strings) to restore to
+            item_details: Preserved item details from get_item_with_categories()
+            property_id: Property ID
+            revenue_center_id: Revenue Center ID
+            username: Username for audit trail
+
+        Returns:
+            Response JSON
+        """
+        payload = {
+            "PropertyID": property_id,
+            "RevenueCenterID": revenue_center_id,
+            "MenuItems": [
+                {
+                    "id": None,
+                    "MenuItemID": item_id,
+                    "Name": item_details.get('item_name', ''),
+                    "Description": item_details.get('description', ''),
+                    "Calories": item_details.get('calories', ''),
+                    "Image": item_details.get('image'),
+                    "Active": True,
+                    "PreparationTime": int(item_details.get('preparation_time', 0)),
+                    "Categories": category_ids,
+                    "Upgrade": None,  # We don't preserve upgrades
+                    "Tags": []
+                }
+            ],
+            "UserName": username
+        }
+
+        try:
+            response = requests.post(self.base_url, headers=self.management_headers, json=payload, timeout=30)
+            response.raise_for_status()
+            self.logger.info(f"Successfully restored item '{item_details.get('item_name')}' to {len(category_ids)} categories with preserved details")
             return response.json()
         except Exception as e:
             self.logger.error(f"Failed to restore item to categories: {str(e)}")
@@ -517,8 +579,7 @@ class ItemManagementAPI:
         if not removed_category_name:
             raise ValueError(f"Category {category_id_to_remove} not found in item's categories")
 
-        # Build comma-separated category IDs string
-        categories_string = ",".join(new_category_ids) if new_category_ids else ""
+        # Build array of remaining category IDs
 
         payload = {
             "PropertyID": property_id,
@@ -528,12 +589,12 @@ class ItemManagementAPI:
                     "id": None,
                     "MenuItemID": item_id,
                     "Name": item.get('Name', ''),
-                    "Description": item.get('Description', ''),
-                    "Calories": item.get('Calories', ''),
+                    "Description": item.get('Description'),
+                    "Calories": item.get('Calories'),
                     "Image": item.get('ImageUrl'),
                     "Active": item.get('Active', True),
-                    "PreparationTime": item.get('PreparationTime', 0),
-                    "Categories": categories_string,
+                    "PreparationTime": int(item.get('PreparationTime', 0)),  # ← Convert to int
+                    "Categories": new_category_ids,
                     "Upgrade": item.get('Upgrade'),
                     "Tags": item.get('Tags', [])
                 }
@@ -584,9 +645,6 @@ class ItemManagementAPI:
         if category_id_to_add not in category_ids:
             category_ids.append(category_id_to_add)
 
-        # Build comma-separated category IDs string
-        categories_string = ",".join(category_ids)
-
         payload = {
             "PropertyID": property_id,
             "RevenueCenterID": revenue_center_id,
@@ -595,12 +653,12 @@ class ItemManagementAPI:
                     "id": None,
                     "MenuItemID": item_id,
                     "Name": item.get('Name', ''),
-                    "Description": item.get('Description', ''),
-                    "Calories": item.get('Calories', ''),
+                    "Description": item.get('Description'),
+                    "Calories": item.get('Calories'),
                     "Image": item.get('ImageUrl'),
                     "Active": item.get('Active', True),
-                    "PreparationTime": item.get('PreparationTime', 0),
-                    "Categories": categories_string,
+                    "PreparationTime": int(item.get('PreparationTime', 0)),  # ← Convert to int
+                    "Categories": category_ids,
                     "Upgrade": item.get('Upgrade'),
                     "Tags": item.get('Tags', [])
                 }
@@ -617,4 +675,57 @@ class ItemManagementAPI:
             return response.json()
         except Exception as e:
             self.logger.error(f"Failed to restore item to category: {str(e)}")
+            raise
+
+    def rename_item(self, item_id, new_name, property_id="33", revenue_center_id="810", username="atevzadze"):
+        """
+        Rename a menu item.
+
+        Args:
+            item_id: Item ID to rename
+            new_name: New name for the item
+            property_id: Property ID
+            revenue_center_id: Revenue Center ID
+            username: Username for audit trail
+
+        Returns:
+            Response JSON
+        """
+        # Get current item details
+        item = self.get_item_full_details(item_id)
+        current_categories = item.get('Categories', [])
+
+        # Build array of category IDs
+        category_ids = [cat.get('ID') for cat in current_categories]
+
+        payload = {
+            "PropertyID": property_id,
+            "RevenueCenterID": revenue_center_id,
+            "MenuItems": [
+                {
+                    "id": None,
+                    "MenuItemID": item_id,
+                    "Name": new_name,
+                    "Description": item.get('Description', ''),
+                    "Calories": item.get('Calories', ''),
+                    "Image": item.get('ImageUrl'),
+                    "Active": item.get('Active', True),
+                    "PreparationTime": int(item.get('PreparationTime', 0)),  # ← Convert to int!
+                    "Categories": category_ids,
+                    "Upgrade": item.get('Upgrade'),
+                    "Tags": item.get('Tags', [])
+                }
+            ],
+            "UserName": username
+        }
+
+        try:
+            response = requests.post(self.base_url, headers=self.management_headers, json=payload, timeout=30)
+            response.raise_for_status()
+
+            self.logger.info(f"Renamed item: '{item['Name']}' → '{new_name}'")
+
+            return response.json()
+        except Exception as e:
+            self.logger.error(f"Failed to rename item: {str(e)}")
             raise
