@@ -89,10 +89,20 @@ class PaymentPageLocators:
     LOADER = (By.CSS_SELECTOR, '.loader')
 
 class ConfirmationPageLocators:
-    SUBTOTAL = (By.CSS_SELECTOR, "div[style*='border-top'][style*='padding-top: 12px'] > div:nth-child(1) > span:last-child")
-    TAX = (By.CSS_SELECTOR, "div[style*='border-top'][style*='padding-top: 12px'] > div:nth-child(2) > span:last-child")
-    TIP = (By.CSS_SELECTOR, "div[style*='border-top'][style*='padding-top: 12px'] > div:nth-child(3) > span:last-child")
-    TOTAL = (By.CSS_SELECTOR, "div[style*='border-top'][style*='padding-top: 12px'] > div:nth-child(4) > span:last-child")
+    CONFIRMATION_MESSAGE = (By.CSS_SELECTOR, "#receipt-success-title")
+    ORDER_NUMBER = (By.CSS_SELECTOR, "#receipt-order-number")
+    SUBTOTAL = (By.CSS_SELECTOR, "#receipt-subtotal")
+    TAX = (By.CSS_SELECTOR, "#receipt-tax")
+    TIP = (By.CSS_SELECTOR, "#receipt-tip")
+    DONATION = (By.CSS_SELECTOR, "#receipt-donation")
+    CHARITY = (By.CSS_SELECTOR, "#receipt-service-charge")
+    SERVICE_CHARGE = (By.CSS_SELECTOR, "#receipt-service-charge")
+    TOTAL = (By.CSS_SELECTOR, "#receipt-total")
+    EMAIL_BUTTON = (By.CSS_SELECTOR, ".receipt-email-btn")
+    EMAIL_FIELD = (By.CSS_SELECTOR, ".toast-input")
+    SEND_BUTTON = (By.CSS_SELECTOR, ".toast-btn-primary")
+    CANCEL_BUTTON = (By.CSS_SELECTOR, "toast-btn-secondary")
+    EMAIL_CONFIRMATION = (By.CSS_SELECTOR, ".toast-message")
 
 
 

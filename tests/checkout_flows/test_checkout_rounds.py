@@ -7,7 +7,7 @@ from src.pages.store.menu_page import MenuPage
 from src.pages.store.checkout_page import CheckoutPage
 from src.pages.store.cart_page import CartPage
 from src.pages.store.payment_page import PaymentPage
-from src.pages.store.confirmation_page import ConfirmationPageLocators
+from src.pages.store.confirmation_page import ConfirmationPage
 from src.data.endpoints.close_table import close_table
 import pytest_check as check
 
@@ -86,6 +86,7 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
     cart_page = CartPage(chrome)
     checkout_page = CheckoutPage(chrome)
     payment_page = PaymentPage(chrome)
+    confirmation_page = ConfirmationPage(chrome)
 
     num_items = 1
     quantity = 2
@@ -147,6 +148,12 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
                 payment_page_total = payment_page.get_total_amount()
                 check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
                 payment_page.make_the_payment()
+        with allure.step(f"Customer navigates to confirmation page {table}"):
+            check.equal(confirmation_page.get_order_status(), True, "Confirmation Page Status is incorrect")
+            check.equal(api_check_number, confirmation_page.get_order_number(), "Check number does not match in confirmation page")
+            check.equal(confirmation_page.calculate_expected_total(), True, "Confirmation Page Total is incorrect")
+
+
 
     except Exception as e:
         close_table()
