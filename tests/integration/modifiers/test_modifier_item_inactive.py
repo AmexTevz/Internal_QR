@@ -29,7 +29,7 @@ def test_modifier_item_hidden_when_inactive(browser_factory, endpoint_setup, tab
     4. Select random modifier from a modifier group
     5. Center and screenshot the modifier
     6. Make modifier inactive via API
-    7. Restart browser and add same item again
+    7. Restart browser and open same item again
     8. Verify modifier is no longer in the modifier group
     9. Restore modifier to active status
     10. Restart browser and verify modifier is visible again

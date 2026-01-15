@@ -5,6 +5,7 @@ import json
 from selenium.webdriver.common.by import By
 from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.modifier_group_management import ModifierGroupManagementAPI
+from datetime import datetime
 
 TABLES = [62]
 
@@ -21,17 +22,19 @@ def test_modifier_group_rename(browser_factory, endpoint_setup, table):
     Test that renaming modifier group updates the name in UI.
 
     Flow:
-    1. Find item with modifier group
-    2. Open item, scroll to modifier group, screenshot (original name)
-    3. Rename modifier group via API (add "TEST RENAME - " prefix)
-    4. Restart browser
-    5. Open item, verify new name appears
-    6. Screenshot showing new name
-    7. Restore original name
-    8. Verify original name restored
+    1. Navigate to main menu
+    2. Find item with modifier group
+    3. Open item, scroll to modifier group, screenshot (original name)
+    4. Rename modifier group via API (add "TEST RENAME - " prefix)
+    5. Restart browser
+    6. Open item, verify new name appears
+    7. Screenshot showing new name
+    8. Restore original name
+    9. Verify original name restored
     """
     api = ModifierGroupManagementAPI()
-
+    timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
+    allure.dynamic.title(f"Modifier Group Rename - {timestamp}")
     [driver] = browser_factory("chrome")
     menu_page = MenuPage(driver)
     menu_page.navigate_to_main_menu()

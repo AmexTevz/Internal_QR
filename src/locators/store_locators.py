@@ -86,6 +86,7 @@ class PaymentPageLocators:
     POSTAL_CODE = (By.CSS_SELECTOR, "#PostalCode")
     MAKE_PAYMENT = (By.XPATH, "//button[text()='Pay Now']")
     TOTAL_AMOUNT = (By.XPATH, "//p[starts-with(text(), '$')]")
+    LOADER = (By.CSS_SELECTOR, '.loader')
 
 class ConfirmationPageLocators:
     SUBTOTAL = (By.CSS_SELECTOR, "div[style*='border-top'][style*='padding-top: 12px'] > div:nth-child(1) > span:last-child")

@@ -5,6 +5,7 @@ import json
 from selenium.webdriver.common.by import By
 from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.modifier_group_management import ModifierGroupManagementAPI
+from datetime import datetime
 
 TABLES = [63]
 
@@ -21,17 +22,19 @@ def test_modifier_group_sequence_change(browser_factory, endpoint_setup, table):
     Test that modifier group sequence changes are reflected in UI order.
 
     Flow:
-    1. Find item with at least 2 modifier groups
-    2. Open item, note original order, screenshot
-    3. Swap sequences via API (group1 <-> group2)
-    4. Restart browser
-    5. Open item, verify order changed via HTML elements
-    6. Screenshot showing new order
-    7. Restore original sequences
-    8. Verify order restored
+    1. Navigate to main menu
+    2. Find item with at least 2 modifier groups
+    3. Open item, note original order, screenshot
+    4. Swap sequences via API (group1 <-> group2)
+    5. Restart browser
+    6. Open item, verify order changed via HTML elements
+    7. Screenshot showing new order
+    8. Restore original sequences
+    9. Verify order restored
     """
     api = ModifierGroupManagementAPI()
-
+    timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
+    allure.dynamic.title(f"Modifier Group Sequence Order - {timestamp}")
     [driver] = browser_factory("chrome")
     menu_page = MenuPage(driver)
     menu_page.navigate_to_main_menu()

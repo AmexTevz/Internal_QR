@@ -5,6 +5,7 @@ import json
 from selenium.webdriver.common.by import By
 from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.modifier_group_management import ModifierGroupManagementAPI
+from datetime import datetime
 
 TABLES = [64]
 
@@ -21,16 +22,18 @@ def test_modifier_optional_to_required(browser_factory, endpoint_setup, table):
     Test that optional modifier group becomes required.
 
     Flow:
-    1. Find item with optional modifier group
-    2. Open item, scroll to modifier group title
-    3. Make modifier required via request
-    4. Reopen same item, scroll to modifier group
-    5. Try to click Add WITHOUT selecting
-    8. Verify "Required" error message appears, screenshot
-    9. Restore to optional
+    1. Navigate to main menu
+    2. Find item with optional modifier group
+    3. Open item, scroll to modifier group title
+    4. Make modifier required via request
+    5. Reopen same item, scroll to modifier group
+    6. Try to click Add WITHOUT selecting
+    7. Verify "Required" error message appears, screenshot
+    8. Restore to optional
     """
     api = ModifierGroupManagementAPI()
-
+    timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
+    allure.dynamic.title(f"Optional Modifier Becomes Required - {timestamp}")
     [driver] = browser_factory("chrome")
     menu_page = MenuPage(driver)
     menu_page.navigate_to_main_menu()

@@ -5,7 +5,7 @@ import json
 from selenium.webdriver.common.by import By
 from src.pages.store.menu_page import MenuPage
 from src.data.endpoints.modifier_group_management import ModifierGroupManagementAPI
-
+from datetime import datetime
 TABLES = [61]
 
 
@@ -21,17 +21,19 @@ def test_modifier_group_inactive(browser_factory, endpoint_setup, table):
     Test that making modifier group inactive hides it from UI.
 
     Flow:
-    1. Find item with modifier group
-    2. Open item, scroll to modifier group, screenshot (visible)
-    3. Make modifier group inactive via API
-    4. Restart browser
-    5. Open item, verify modifier group is hidden
-    6. Screenshot showing missing group
-    7. Restore to active
-    8. Verify group visible again
+    1. Navigate to main menu
+    2. Find item with modifier group
+    3. Open item, scroll to modifier group, screenshot (visible)
+    4. Make modifier group inactive via API
+    5. Restart browser
+    6. Open item, verify modifier group is hidden
+    7. Screenshot showing missing group
+    8. Restore to active
+    9. Verify group visible again
     """
     api = ModifierGroupManagementAPI()
-
+    timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
+    allure.dynamic.title(f"Modifier Group Inactive - {timestamp}")
     [driver] = browser_factory("chrome")
     menu_page = MenuPage(driver)
     menu_page.navigate_to_main_menu()
