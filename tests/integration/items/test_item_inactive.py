@@ -14,6 +14,7 @@ TABLES = [59]
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.all
 @pytest.mark.integration
+@pytest.mark.item_integration
 @pytest.mark.item_inactive
 @allure.feature("Item Management")
 @allure.story("Item Hidden When Inactive")

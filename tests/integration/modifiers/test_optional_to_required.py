@@ -12,6 +12,7 @@ TABLES = [64]
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.all
 @pytest.mark.integration
+@pytest.mark.modifier_integration
 @pytest.mark.modifier_required
 @allure.feature("Modifier Groups")
 @allure.story("Optional Modifier Becomes Required")

@@ -193,19 +193,26 @@ class ItemManagementAPI:
             Response JSON
         """
         menu_items = []
+
+        # Fetch full details for each item to preserve all fields
         for item_id in item_ids:
+            item = self.get_item_full_details(item_id)
+
+            # Extract category IDs from the item's categories
+            category_ids = [cat.get('ID') for cat in item.get('Categories', [])]
+
             menu_items.append({
                 "id": None,
                 "MenuItemID": item_id,
-                "Name": "",
-                "Description": "",
-                "Calories": "",
-                "Image": None,
-                "Active": False,
-                "PreparationTime": 0,
-                "Categories": "",
-                "Upgrade": None,
-                "Tags": []
+                "Name": item.get('Name', ''),
+                "Description": item.get('Description', ''),
+                "Calories": item.get('Calories', ''),
+                "Image": item.get('ImageUrl'),  # Preserve image URL
+                "Active": False,  # Only change active status
+                "PreparationTime": int(item.get('PreparationTime', 0)),
+                "Categories": category_ids,
+                "Upgrade": item.get('Upgrade'),
+                "Tags": item.get('Tags', [])
             })
 
         payload = {
@@ -218,7 +225,7 @@ class ItemManagementAPI:
         try:
             response = requests.post(self.base_url, headers=self.management_headers, json=payload, timeout=30)
             response.raise_for_status()
-            self.logger.info(f"Successfully made {len(item_ids)} items inactive")
+            self.logger.info(f"Successfully made {len(item_ids)} items inactive with preserved details")
             return response.json()
         except Exception as e:
             self.logger.error(f"Failed to make items inactive: {str(e)}")
@@ -238,19 +245,26 @@ class ItemManagementAPI:
             Response JSON
         """
         menu_items = []
+
+        # Fetch full details for each item to preserve all fields
         for item_id in item_ids:
+            item = self.get_item_full_details(item_id)
+
+            # Extract category IDs from the item's categories
+            category_ids = [cat.get('ID') for cat in item.get('Categories', [])]
+
             menu_items.append({
                 "id": None,
                 "MenuItemID": item_id,
-                "Name": "",
-                "Description": "",
-                "Calories": "",
-                "Image": None,
-                "Active": True,
-                "PreparationTime": 0,
-                "Categories": "",
-                "Upgrade": None,
-                "Tags": []
+                "Name": item.get('Name', ''),
+                "Description": item.get('Description', ''),
+                "Calories": item.get('Calories', ''),
+                "Image": item.get('ImageUrl'),  # Preserve image URL
+                "Active": True,  # Only change active status
+                "PreparationTime": int(item.get('PreparationTime', 0)),
+                "Categories": category_ids,
+                "Upgrade": item.get('Upgrade'),
+                "Tags": item.get('Tags', [])
             })
 
         payload = {
@@ -263,7 +277,7 @@ class ItemManagementAPI:
         try:
             response = requests.post(self.base_url, headers=self.management_headers, json=payload, timeout=30)
             response.raise_for_status()
-            self.logger.info(f"Successfully restored {len(item_ids)} items to active")
+            self.logger.info(f"Successfully restored {len(item_ids)} items to active with preserved details")
             return response.json()
         except Exception as e:
             self.logger.error(f"Failed to restore items to active: {str(e)}")

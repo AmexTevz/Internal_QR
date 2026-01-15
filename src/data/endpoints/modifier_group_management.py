@@ -174,32 +174,7 @@ class ModifierGroupManagementAPI:
         return selected
 
     def get_item_with_multiple_modifiers(self, menu_page, min_groups=2, exclude_alcohol_categories=True):
-        """
-        Find an item with at least min_groups modifier groups.
-        Randomly selects from available items.
 
-        Args:
-            menu_page: MenuPage instance
-            min_groups: Minimum number of modifier groups required
-            exclude_alcohol_categories: Exclude items from alcohol categories
-
-        Returns:
-            dict: {
-                'item_id': str,
-                'item_name': str,
-                'category_id': str,
-                'category_name': str,
-                'modifier_groups': [
-                    {
-                        'id': str,
-                        'name': str,
-                        'sequence': int,
-                        'required': bool,
-                        'original_data': dict
-                    }
-                ]
-            }
-        """
         import random
 
         menu_data = self.get_all_menu_data()
@@ -268,7 +243,33 @@ class ModifierGroupManagementAPI:
                     break  # Only need one category per item
 
         if not candidates:
-            raise ValueError(f"No items found with at least {min_groups} modifier groups")
+            # Provide detailed debugging info
+            total_items = len(items)
+            active_items = sum(1 for item in items if item.get('Active', False))
+            items_in_visible_cats = 0
+            items_with_enough_mods = 0
+
+            for item in items:
+                if not item.get('Active', False) or item.get('IsOutOfStock', False):
+                    continue
+                item_categories = item.get('Categories', [])
+                for category in item_categories:
+                    cat_id = category.get('ID')
+                    if cat_id in category_info:
+                        items_in_visible_cats += 1
+                        mod_groups = item.get('ModifierGroups', [])
+                        if len(mod_groups) >= min_groups:
+                            items_with_enough_mods += 1
+                        break
+
+            error_msg = (
+                f"No items found with at least {min_groups} modifier groups. "
+                f"Debug info: Total items={total_items}, Active={active_items}, "
+                f"In visible categories={items_in_visible_cats}, "
+                f"With {min_groups}+ mod groups={items_with_enough_mods}, "
+                f"Visible categories={visible_category_names}"
+            )
+            raise ValueError(error_msg)
 
         # Randomly select one
         selected = random.choice(candidates)
@@ -547,3 +548,228 @@ class ModifierGroupManagementAPI:
         }
 
         return payload
+
+    def get_item_with_modifiers(self, item_id):
+        """
+        Get item details including all modifier groups and their modifiers.
+
+        Args:
+            item_id: Item ID to get modifiers for
+
+        Returns:
+            dict: Item details with nested modifier structure
+        """
+        menu_data = self.get_all_menu_data()
+        items_data = menu_data.get('Items', [])
+
+        for item in items_data:
+            if item['ID'] == item_id:
+                return {
+                    'item_id': item['ID'],
+                    'item_name': item['Name'],
+                    'modifier_groups': item.get('ModifierGroups', [])
+                }
+
+        raise ValueError(f"Item {item_id} not found")
+
+    def get_random_modifier_from_item(self, item_id):
+        """
+        Get a random modifier from a random modifier group on an item.
+
+        Args:
+            item_id: Item ID to get modifier from
+
+        Returns:
+            dict: {
+                'modifier_id': str,
+                'modifier_name': str,
+                'modifier_group_id': str,
+                'modifier_group_name': str,
+                'item_id': str,
+                'item_name': str
+            }
+        """
+        import random
+
+        item_data = self.get_item_with_modifiers(item_id)
+        modifier_groups = item_data['modifier_groups']
+
+        if not modifier_groups:
+            raise ValueError(f"Item {item_id} has no modifier groups")
+
+        # Get groups that have modifiers
+        groups_with_modifiers = [
+            group for group in modifier_groups
+            if group.get('Modifiers') and len(group['Modifiers']) > 0
+        ]
+
+        if not groups_with_modifiers:
+            raise ValueError(f"Item {item_id} has no modifiers in any group")
+
+        # Select random group
+        selected_group = random.choice(groups_with_modifiers)
+
+        # Select random modifier from that group
+        selected_modifier = random.choice(selected_group['Modifiers'])
+
+        self.logger.info(
+            f"Selected modifier: '{selected_modifier['Name']}' "
+            f"from group '{selected_group['Name']}' "
+            f"on item '{item_data['item_name']}'"
+        )
+
+        return {
+            'modifier_id': selected_modifier['ID'],
+            'modifier_name': selected_modifier['Name'],
+            'modifier_group_id': selected_group['Id'],  # ← Fixed: 'Id' not 'ID'
+            'modifier_group_name': selected_group['Name'],
+            'item_id': item_data['item_id'],
+            'item_name': item_data['item_name'],
+            'original_active': selected_modifier.get('Active', True)
+        }
+
+
+    def get_modifier_full_details(self, modifier_id):
+        """
+        Get complete details for a specific modifier item.
+        Modifiers are nested inside Items -> ModifierGroups -> Modifiers.
+
+        Args:
+            modifier_id: Modifier item ID
+
+        Returns:
+            dict: Full modifier details from API
+        """
+        menu_data = self.get_all_menu_data()
+        items_data = menu_data.get('Items', [])
+
+        # Search through the nested structure
+        for item in items_data:
+            modifier_groups = item.get('ModifierGroups', [])
+            for group in modifier_groups:
+                modifiers = group.get('Modifiers', [])
+                for modifier in modifiers:
+                    if modifier.get('ID') == modifier_id:
+                        self.logger.info(
+                            f"Found modifier '{modifier.get('Name')}' "
+                            f"in group '{group.get('Name')}' "
+                            f"on item '{item.get('Name')}'"
+                        )
+                        return modifier
+
+        raise ValueError(
+            f"Modifier item {modifier_id} not found in menu data. "
+            f"Searched {len(items_data)} items and their modifier groups."
+        )
+
+    def make_modifier_item_inactive(self, modifier_id, property_id="33", revenue_center_id="810", username="atevzadze"):
+        """
+        Make a single modifier item inactive.
+
+        Args:
+            modifier_id: Modifier item ID to make inactive
+            property_id: Property ID
+            revenue_center_id: Revenue Center ID
+            username: Username for audit trail
+
+        Returns:
+            Response JSON
+        """
+        # Modifiers use the menuItems endpoint
+        menu_items_url = "https://digitalmwqa.azure-api.net/v2/internal/menu/management/menuItems"
+
+        # Fetch full details to preserve all fields
+        modifier = self.get_modifier_full_details(modifier_id)
+
+        payload = {
+            "PropertyID": property_id,
+            "RevenueCenterID": revenue_center_id,
+            "MenuItems": [
+                {
+                    "id": None,
+                    "MenuItemID": modifier_id,
+                    "Name": modifier.get('Name', ''),
+                    "Description": modifier.get('Description', ''),
+                    "Calories": modifier.get('Calories', ''),
+                    "Image": modifier.get('ImageUrl'),  # Preserve image URL
+                    "Active": False,  # Only change active status
+                    "PreparationTime": int(modifier.get('PreparationTime', 0) if modifier.get('PreparationTime') is not None else 0),
+                    "Categories": [],  # Modifiers don't have categories
+                    "Upgrade": None,  # Modifiers don't have upgrades
+                    "Tags": []  # Modifiers don't have tags
+                }
+            ],
+            "UserName": username
+        }
+
+        try:
+            response = requests.post(
+                menu_items_url,
+                headers=self.management_headers,
+                json=payload,
+                timeout=30
+            )
+            response.raise_for_status()
+
+            self.logger.info(f"Made modifier {modifier_id} inactive with preserved details")
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Failed to make modifier inactive: {str(e)}")
+            raise
+
+    def make_modifier_item_active(self, modifier_id, property_id="33", revenue_center_id="810", username="atevzadze"):
+        """
+        Make a single modifier item active (restore).
+
+        Args:
+            modifier_id: Modifier item ID to make active
+            property_id: Property ID
+            revenue_center_id: Revenue Center ID
+            username: Username for audit trail
+
+        Returns:
+            Response JSON
+        """
+        # Modifiers use the menuItems endpoint
+        menu_items_url = "https://digitalmwqa.azure-api.net/v2/internal/menu/management/menuItems"
+
+        # Fetch full details to preserve all fields
+        modifier = self.get_modifier_full_details(modifier_id)
+
+        payload = {
+            "PropertyID": property_id,
+            "RevenueCenterID": revenue_center_id,
+            "MenuItems": [
+                {
+                    "id": None,
+                    "MenuItemID": modifier_id,
+                    "Name": modifier.get('Name', ''),
+                    "Description": modifier.get('Description', ''),
+                    "Calories": modifier.get('Calories', ''),
+                    "Image": modifier.get('ImageUrl'),  # Preserve image URL
+                    "Active": True,  # Only change active status
+                    "PreparationTime": int(modifier.get('PreparationTime', 0) if modifier.get('PreparationTime') is not None else 0),
+                    "Categories": [],  # Modifiers don't have categories
+                    "Upgrade": None,  # Modifiers don't have upgrades
+                    "Tags": []  # Modifiers don't have tags
+                }
+            ],
+            "UserName": username
+        }
+
+        try:
+            response = requests.post(
+                menu_items_url,
+                headers=self.management_headers,
+                json=payload,
+                timeout=30
+            )
+            response.raise_for_status()
+
+            self.logger.info(f"Made modifier {modifier_id} active with preserved details")
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Failed to make modifier active: {str(e)}")
+            raise

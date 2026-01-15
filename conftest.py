@@ -63,7 +63,7 @@ def endpoint_setup(table):
         api.close_table()
         print(f"✓ Table {table} closed successfully")
     except Exception as e:
-        print(f"✗ Error closing table {table}: {str(e)}")
+        pass
 
     print(f"{'=' * 60}\n")
 

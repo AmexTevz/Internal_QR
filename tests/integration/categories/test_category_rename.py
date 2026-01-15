@@ -12,6 +12,7 @@ TABLES = [71]
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.all
 @pytest.mark.integration
+@pytest.mark.category_integration
 @pytest.mark.category_rename
 @allure.feature("Category Management")
 @allure.story("Category Rename")

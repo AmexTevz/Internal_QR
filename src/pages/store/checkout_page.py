@@ -108,6 +108,7 @@ class CheckoutPage(BasePage):
         self.click(CheckoutPageLocators.PAY_BUTTON)
         self.logger.info(f"Clicked Pay button")
 
+
         if upsell:
             info = {}
             try:
@@ -136,9 +137,9 @@ class CheckoutPage(BasePage):
             try:
                 no_thanks = self.find_element(CheckoutPageLocators.NO_THANKS, timeout=2)
                 if no_thanks:
-                    self.click(no_thanks)
                     self.logger.info(f"Declined additional upsells")
                     self.attach_screenshot("Declined additional upsells")
+                    self.click(no_thanks)
             except:
                 pass
 
@@ -157,6 +158,13 @@ class CheckoutPage(BasePage):
         except Exception as e:
             self.logger.error(f"Failed to get subtotal from checkout: {str(e)}")
             self.logger.exception(f"Failed to get subtotal from checkout: {str(e)}")
+
+    def verify_initial_tip_amount(self):
+        if self.get_tip_amount() == 0.00:
+            self.attach_screenshot("Tip amount is not reflected when landing on the checkout page")
+            return False
+        return True
+
 
     @allure.step("Get tax amount from checkout page")
     def get_tax_amount(self):

@@ -12,6 +12,7 @@ TABLES = [62]
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.all
 @pytest.mark.integration
+@pytest.mark.modifier_integration
 @pytest.mark.modifier_rename
 @allure.feature("Modifier Groups")
 @allure.story("Modifier Group Rename")

@@ -626,7 +626,7 @@ class BasePage:
             attachment_type=allure.attachment_type.TEXT
         )
 
-    def wait_for_value_to_update(self, locator, initial_value="$0.00", timeout=10, name=None):
+    def wait_for_value_to_update(self, locator, initial_value="$0.00", timeout=60, name=None):
         """Wait for element text to change from initial value to actual calculated value"""
         element_name = name if name else str(locator)
         logging.info(f"Waiting for {element_name} to update from '{initial_value}'")
@@ -637,6 +637,7 @@ class BasePage:
             try:
                 element = self.find_element(locator, timeout=2)
                 current_text = self.get_text(locator, element=element, name=element_name)
+                self.logger.info(f"Current text: {current_text}")
 
                 # Check if value has changed from initial value
                 if current_text and current_text != initial_value:

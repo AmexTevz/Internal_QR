@@ -14,6 +14,7 @@ TABLES = [60]
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.all
 @pytest.mark.integration
+@pytest.mark.item_integration
 @pytest.mark.item_categories
 @allure.feature("Item Management")
 @allure.story("Item Hidden When Removed From All Categories")

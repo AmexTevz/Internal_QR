@@ -1,5 +1,5 @@
 from src.pages.base_page import BasePage
-from src.locators.store_locators import CartPageLocators
+from src.locators.store_locators import CartPageLocators, CheckoutPageLocators
 import allure
 from src.utils.logger import Logger
 
@@ -86,9 +86,11 @@ class CartPage(BasePage):
             self.wait_for_element_visible(CartPageLocators.CHECKOUT_BUTTON)
             if self.is_element_present(CartPageLocators.CHECKOUT_BUTTON, timeout=3):
                 self.click(CartPageLocators.CHECKOUT_BUTTON)
+                self.wait_for_loading_to_disappear(CartPageLocators.LOADER)
                 self.logger.info("Successfully navigated to checkout page")
                 self.attach_note("Navigated to checkout")
                 self.attach_screenshot("Checkout page")
+                self.wait_for_value_to_update(CheckoutPageLocators.TOTAL_VALUE)
             else:
                 self.logger.error("Cannot navigate to checkout page - button not present")
                 self.attach_screenshot("Checkout button not found")

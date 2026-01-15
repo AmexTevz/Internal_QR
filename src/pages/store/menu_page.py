@@ -62,11 +62,10 @@ class MenuPage(BasePage):
             self.logger.exception(f"Failed to extract item info: {str(e)}")
             return None, None
 
-    @allure.step("Verify badge count for item {item_id}")
+    @allure.step("Verify badge count for cart and item {item_id}")
     def verify_item_badge_count(self, item_id, expected_count):
 
         try:
-            # Locate the add button for this specific item
             add_button_locator = (By.ID, f"add-item-{item_id}")
             add_button = self.find_element(add_button_locator, timeout=5)
 
@@ -74,8 +73,9 @@ class MenuPage(BasePage):
                 self.logger.error(f"Add button not found for item {item_id}")
                 return False
 
-            # Check if badge exists (item has been added to cart)
             badge_locator = (By.CSS_SELECTOR, f"#add-item-{item_id} .menu-item-add-count")
+            badge_element = self.driver.find_element(*badge_locator)
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", badge_element)
 
             if expected_count == 0:
                 if not self.is_element_displayed(badge_locator):
@@ -159,7 +159,6 @@ class MenuPage(BasePage):
             self.logger.debug(f"Cart badge not found: {str(e)}")
             return 0
 
-    @allure.step("Verify cart badge shows accurate number")
     def verify_cart_badge(self, expected_count=None):
 
         try:
@@ -646,6 +645,7 @@ class MenuPage(BasePage):
     def go_to_basket(self):
         try:
             self.click(MenuPageLocators.CART_ICON)
+            self.wait_for_loading_to_disappear(MenuPageLocators.LOADER)
             self.logger.info("Successfully navigated to basket")
             self.attach_screenshot("Basket page")
         except Exception as e:

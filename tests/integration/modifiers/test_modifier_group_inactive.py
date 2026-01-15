@@ -12,7 +12,8 @@ TABLES = [61]
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.all
 @pytest.mark.integration
-@pytest.mark.modifier_inactive
+@pytest.mark.modifier_integration
+@pytest.mark.modifier_group_inactive
 @allure.feature("Modifier Groups")
 @allure.story("Modifier Group Active/Inactive")
 def test_modifier_group_inactive(browser_factory, endpoint_setup, table):

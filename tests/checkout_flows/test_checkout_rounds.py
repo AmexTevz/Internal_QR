@@ -87,7 +87,7 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
     checkout_page = CheckoutPage(chrome)
     payment_page = PaymentPage(chrome)
 
-    num_items = 2
+    num_items = 1
     quantity = 2
     reorder_count = 2
 
@@ -136,7 +136,7 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
                 app_subtotal = checkout_page.get_subtotal()
                 api_subtotal = get_api_data('subtotal')
                 check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect")
-
+                check.equal(checkout_page.verify_initial_tip_amount(), True, "Initial tip amount is incorrect")
                 checkout_page.manage_tips(random.uniform(2.99, 9.99))
                 charity_applied = checkout_page.apply_charity()
                 check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")

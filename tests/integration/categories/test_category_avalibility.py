@@ -14,6 +14,7 @@ TABLES = [56]
 @pytest.mark.parametrize("table", TABLES)
 @pytest.mark.all
 @pytest.mark.integration
+@pytest.mark.category_integration
 @pytest.mark.category_availability
 @allure.feature("Category Management")
 @allure.story("Category Availability by Time")

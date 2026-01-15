@@ -12,7 +12,6 @@ def add_items_to_check(session_id=None, transaction_guid=None):
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # If session_id is not provided, try to read it from file
     if session_id is None:
         session_id_path = os.path.join(script_dir, 'session_data.json')
         try:

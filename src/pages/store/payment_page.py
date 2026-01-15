@@ -36,7 +36,14 @@ class PaymentPage(BasePage):
             except TimeoutException:
                 pass
 
-    def get_total_amount(self):
+    @allure.step("Total Amount on the Payment Page")
+    def get_total_amount(self, scroll_into_view=True):
+        if scroll_into_view:
+            total_element = self.wait_for_element_visible(PaymentPageLocators.TOTAL_AMOUNT)
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", total_element)
+            time.sleep(0.5)
+            self.attach_screenshot("Total Amount on the Payment Page")
+
         total_text = self.get_text_3(PaymentPageLocators.TOTAL_AMOUNT)
         amount = float(total_text.replace('$', '').strip())
         return amount

@@ -31,7 +31,7 @@ class MenuPageLocators:
     CATEGORY_PILLS = (By.CSS_SELECTOR, '.menu-category-pill')
     CATEGORY_LABEL = (By.CSS_SELECTOR, '.menu-category-label')
     NO_RESULTS_FOUND = (By.CSS_SELECTOR, ".menu-empty")
-
+    LOADER = (By.CSS_SELECTOR, '.spinner-border')
 
     INITIAL_BUTTON = (By.CSS_SELECTOR, '#goto-main-page-button')
 
@@ -45,11 +45,12 @@ class MenuPageLocators:
 class CartPageLocators:
     TABLE_NUMBER_CART = (By.CSS_SELECTOR, "#cart-table-number")
     CHECK_NUMBER_CART = (By.CSS_SELECTOR, "#cart-check-number")
-    PLACE_ORDER = (By.XPATH, "//button[text()='Place Order']")
+    PLACE_ORDER = (By.XPATH, "//button[text()='Place order']")
     # CLOSE_CHECK_AND_PAY = (By.CSS_SELECTOR, "#close-check-and-pay")
     CONTINUE_ORDERING = (By.CSS_SELECTOR, "#continue-ordering")
     ORDER_MORE_BUTTON = (By.CSS_SELECTOR, "#add-more-button")
     CHECKOUT_BUTTON = (By.XPATH, "//button[text()='Checkout']")
+    LOADER = (By.CSS_SELECTOR, '.spinner-border')
 
 class CheckoutPageLocators:
     CHECK_NUMBER_CHECKOUT = (By.CSS_SELECTOR, "#dinein-check-number")
@@ -72,6 +73,7 @@ class CheckoutPageLocators:
     UPSELL_ITEM_PRICE = (By.CSS_SELECTOR, '.mod-cta-price')
     UPSELL_ITEM_NAME = (By.CSS_SELECTOR, '.mod-title')
     ADD_BUTTON = (By.CSS_SELECTOR, "#add-for-button")
+    LOADER = (By.CSS_SELECTOR, '.spinner-border')
 
 
 class PaymentPageLocators:

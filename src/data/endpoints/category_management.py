@@ -1,7 +1,3 @@
-"""
-Category Management API
-Manages category availability times for integration testing
-"""
 import requests
 import json
 from datetime import datetime, timedelta
@@ -10,7 +6,6 @@ from src.utils.logger import Logger
 
 
 class CategoryManagementAPI:
-    """API client for managing menu categories (availability times, etc.)"""
 
     def __init__(self):
         self.base_url = "https://digitalmwqa.azure-api.net/v2/internal/menu/management"
@@ -29,25 +24,13 @@ class CategoryManagementAPI:
 
         self.logger = Logger("CategoryManagementAPI")
 
-        # API timezone is Eastern
         self.api_timezone = pytz.timezone('US/Eastern')
 
-        # Session ID (obtained from authentication)
         self.session_id = None
 
     def authenticate(self, client_id="3289FE1A-A4CA-49DC-9CDF-C2831781E850",
                      username="internal", passkey="P455w0rd"):
-        """
-        Authenticate and get a fresh session ID.
 
-        Args:
-            client_id: Client ID for authentication
-            username: API username
-            passkey: API password
-
-        Returns:
-            str: Session ID
-        """
         payload = {
             "ClientID": client_id,
             "username": username,
@@ -78,14 +61,7 @@ class CategoryManagementAPI:
 
     def get_all_categories_from_menu(self, property_id="33", revenue_center_id="810",
                                       client_id="3289FE1A-A4CA-49DC-9CDF-C2831781E850"):
-        """
-        Get all categories dynamically from the menu items API.
-        Authenticates first if needed.
 
-        Returns:
-            tuple: (categories_dict, category_details_dict)
-        """
-        # Authenticate if we don't have a session ID
         if not self.session_id:
             self.logger.info("No session ID found, authenticating...")
             self.authenticate(client_id=client_id)
@@ -109,7 +85,6 @@ class CategoryManagementAPI:
             data = response.json()
             items = data.get("Items", [])
 
-            # Extract unique categories with full details
             categories = {}
             category_details = {}
 
@@ -144,21 +119,7 @@ class CategoryManagementAPI:
 
     def update_category_times(self, category_id, category_details, open_time, close_time,
                               property_id="33", revenue_center_id="810", username="atevzadze"):
-        """
-        Update category availability times.
 
-        Args:
-            category_id: Category UUID
-            category_details: Full category details dict (from get_all_categories_from_menu)
-            open_time: OpenTime in HH:MM:SS format (e.g., "13:00:00")
-            close_time: CloseTime in HH:MM:SS format (e.g., "23:59:59")
-            property_id: Property ID
-            revenue_center_id: Revenue Center ID
-            username: Username for audit trail
-
-        Returns:
-            Response JSON
-        """
         details = category_details[category_id]
 
         payload = {
@@ -208,24 +169,11 @@ class CategoryManagementAPI:
 
     def make_category_unavailable(self, category_id, category_details,
                                    property_id="33", revenue_center_id="810"):
-        """
-        Make a category unavailable by setting it to have closed 1 hour ago.
 
-        Args:
-            category_id: Category UUID
-            category_details: Full category details dict
-            property_id: Property ID
-            revenue_center_id: Revenue Center ID
-
-        Returns:
-            Response JSON
-        """
-        # Get current time in API timezone (Eastern)
         current_time = datetime.now(self.api_timezone)
 
-        # Set category to have closed 1 hour ago
         close_time = (current_time - timedelta(hours=1)).strftime("%H:%M:%S")
-        open_time = "00:00:00"  # Opens at midnight
+        open_time = "00:00:00"
 
         self.logger.info(
             f"Making category '{category_details[category_id]['Name']}' unavailable. "
@@ -244,20 +192,7 @@ class CategoryManagementAPI:
 
     def restore_category_times(self, category_id, category_details, original_open_time,
                                 original_close_time, property_id="33", revenue_center_id="810"):
-        """
-        Restore category to original availability times.
 
-        Args:
-            category_id: Category UUID
-            category_details: Full category details dict
-            original_open_time: Original OpenTime
-            original_close_time: Original CloseTime
-            property_id: Property ID
-            revenue_center_id: Revenue Center ID
-
-        Returns:
-            Response JSON
-        """
         self.logger.info(
             f"Restoring category '{category_details[category_id]['Name']}' to original times: "
             f"OpenTime={original_open_time}, CloseTime={original_close_time}"
@@ -274,20 +209,7 @@ class CategoryManagementAPI:
 
     def set_category_active_status(self, category_id, category_details, active_status,
                                     property_id="33", revenue_center_id="810", username="atevzadze"):
-        """
-        Set category active/inactive status.
 
-        Args:
-            category_id: Category UUID
-            category_details: Full category details dict
-            active_status: True to activate, False to deactivate
-            property_id: Property ID
-            revenue_center_id: Revenue Center ID
-            username: Username for audit trail
-
-        Returns:
-            Response JSON
-        """
         details = category_details[category_id]
 
         payload = {
@@ -337,18 +259,7 @@ class CategoryManagementAPI:
 
     def make_category_inactive(self, category_id, category_details,
                                 property_id="33", revenue_center_id="810"):
-        """
-        Make a category inactive (Active = false).
 
-        Args:
-            category_id: Category UUID
-            category_details: Full category details dict
-            property_id: Property ID
-            revenue_center_id: Revenue Center ID
-
-        Returns:
-            Response JSON
-        """
         self.logger.info(
             f"Making category '{category_details[category_id]['Name']}' inactive"
         )
@@ -433,20 +344,7 @@ class CategoryManagementAPI:
 
     def rename_category(self, category_id, category_details, new_name,
                         property_id="33", revenue_center_id="810", username="atevzadze"):
-        """
-        Rename a category.
 
-        Args:
-            category_id: Category UUID
-            category_details: Full category details dict
-            new_name: New name for the category
-            property_id: Property ID
-            revenue_center_id: Revenue Center ID
-            username: Username for audit trail
-
-        Returns:
-            Response JSON
-        """
         details = category_details[category_id]
 
         payload = {
