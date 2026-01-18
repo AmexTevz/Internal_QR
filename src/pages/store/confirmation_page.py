@@ -101,7 +101,7 @@ class ConfirmationPage(BasePage):
         try:
             text = self.get_text(ConfirmationPageLocators.ORDER_NUMBER)
             value = int(text.strip())
-            self.logger.debug(f"Order number: ${value:.2f}")
+            self.logger.debug(f"Order number: {value}")
             return value
         except Exception as e:
             self.logger.error(f"Failed to get order number: {str(e)}")
