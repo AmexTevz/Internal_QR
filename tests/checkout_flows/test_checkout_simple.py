@@ -149,7 +149,8 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
         with allure.step(f"Customer navigates to confirmation page {table}"):
             check.equal(confirmation_page.get_order_status(), True, "Confirmation Page Status is incorrect")
             check.equal(api_check_number, confirmation_page.get_order_number(), "Check number does not match in confirmation page")
-            check.equal(confirmation_page.calculate_expected_total(), True, "Confirmation Page Total is incorrect")
+            check.equal(confirmation_page.get_total(), payment_page_total, "Confirmation Page Total is incorrect")
+            check.equal(confirmation_page.calculate_expected_total(), True, "Confirmation Page breakdown does not add up")
 
 
 
