@@ -140,7 +140,9 @@ def test_checkout_flow_upsell(browser_factory, endpoint_setup, table):
                 checkout_page.manage_tips(random.uniform(3.99, 8.99))
                 charity_applied = checkout_page.apply_charity()
                 check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
+                check.equal(checkout_page.calculate_expected_total(), True, "Checkout Page breakdown does not add up")
                 checkout_page_total = checkout_page.get_total()
+
                 upsell_items_found = checkout_page.go_to_payment_page(upsell=True)
                 check.not_equal(upsell_items_found, False, "Upsell items were not found")
                 if upsell_items_found:
@@ -175,8 +177,10 @@ def test_checkout_flow_upsell(browser_factory, endpoint_setup, table):
                         check.equal(confirmation_page.get_order_status(), True, "Confirmation Page Status is incorrect")
                         check.equal(api_check_number, confirmation_page.get_order_number(),
                                     "Check number does not match in confirmation page")
-                        check.equal(confirmation_page.calculate_expected_total(), True,
+                        check.equal(confirmation_page.get_total(), payment_page_total,
                                     "Confirmation Page Total is incorrect")
+                        check.equal(confirmation_page.calculate_expected_total(), True,
+                                    "Confirmation Page breakdown does not add up")
 
 
     except Exception as e:

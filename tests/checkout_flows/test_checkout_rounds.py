@@ -141,6 +141,7 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
                 checkout_page.manage_tips(random.uniform(2.99, 9.99))
                 charity_applied = checkout_page.apply_charity()
                 check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
+                check.equal(checkout_page.calculate_expected_total(), True, "Checkout Page breakdown does not add up")
                 checkout_page_total = checkout_page.get_total()
 
         with allure.step(f"Customer navigates to payment page {table}"):
@@ -151,7 +152,9 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
         with allure.step(f"Customer navigates to confirmation page {table}"):
             check.equal(confirmation_page.get_order_status(), True, "Confirmation Page Status is incorrect")
             check.equal(api_check_number, confirmation_page.get_order_number(), "Check number does not match in confirmation page")
-            check.equal(confirmation_page.calculate_expected_total(), True, "Confirmation Page Total is incorrect")
+            check.equal(confirmation_page.get_total(), payment_page_total, "Confirmation Page Total is incorrect")
+            check.equal(confirmation_page.calculate_expected_total(), True,
+                        "Confirmation Page breakdown does not add up")
 
 
 

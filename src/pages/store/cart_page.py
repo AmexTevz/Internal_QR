@@ -80,7 +80,6 @@ class CartPage(BasePage):
             raise
 
 
-    @allure.step("Navigate to checkout page")
     def navigate_to_checkout_page(self, reorder = 0):
         try:
             self.wait_for_element_visible(CartPageLocators.CHECKOUT_BUTTON)
@@ -88,7 +87,6 @@ class CartPage(BasePage):
                 self.click(CartPageLocators.CHECKOUT_BUTTON)
                 self.wait_for_loading_to_disappear(CartPageLocators.LOADER)
                 self.logger.info("Successfully navigated to checkout page")
-                self.attach_note("Navigated to checkout")
                 self.attach_screenshot("Checkout page")
                 self.wait_for_value_to_update(CheckoutPageLocators.TOTAL_VALUE)
             else:

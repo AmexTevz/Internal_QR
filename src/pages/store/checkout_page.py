@@ -13,13 +13,9 @@ class CheckoutPage(BasePage):
         super().__init__(driver)
         self.logger = Logger("CheckoutPage")
 
-
-
-
     @allure.step("Manage tips")
     def manage_tips(self, amount=None, manual_roundup = False):
         self.logger.info("managing tips")
-        self.attach_screenshot("Before sending the tips")
         try:
             if manual_roundup:
                 self.click(CheckoutPageLocators.TIP_CUSTOM)
@@ -65,9 +61,6 @@ class CheckoutPage(BasePage):
         return applied_charity
 
 
-
-
-
     @allure.step("Get check and table numbers from checkout page")
     def get_check_number_checkout(self):
         try:
@@ -78,7 +71,6 @@ class CheckoutPage(BasePage):
                 check_num = int(check_number)
 
                 self.logger.info(f"Check number retrieved from checkout: {check_num}")
-                self.attach_note(f"Check number: {check_num}")
                 self.attach_screenshot("Check number on checkout")
                 return check_num
         except Exception as e:
@@ -143,7 +135,6 @@ class CheckoutPage(BasePage):
             except:
                 pass
 
-    @allure.step("Get subtotal amount from checkout page")
     def get_tip_amount(self):
         try:
             self.is_element_displayed(CheckoutPageLocators.SUBTOTAL_VALUE, timeout=5)
@@ -152,7 +143,7 @@ class CheckoutPage(BasePage):
             tip_value = float(tip_value.replace('$', '').strip())
 
             self.logger.info(f"Tip retrieved from checkout: ${tip_value:.2f}")
-            self.attach_note(f"Tip: ${tip_value:.2f}")
+
 
             return tip_value
         except Exception as e:
@@ -181,6 +172,40 @@ class CheckoutPage(BasePage):
         except Exception as e:
             self.logger.error(f"Failed to get tax from checkout: {str(e)}")
             self.logger.exception(f"Failed to get tax from checkout: {str(e)}")
+
+    def get_donation_amount(self):
+        if self.is_element_present(CheckoutPageLocators.DONATION_VALUE, timeout=1):
+            try:
+                self.is_element_displayed(CheckoutPageLocators.DONATION_VALUE, timeout=5)
+
+                donation_value = self.get_text_3(CheckoutPageLocators.DONATION_VALUE)
+                donation_value = float(donation_value.replace('$', '').strip())
+
+                self.logger.info(f"Tip retrieved from checkout: ${donation_value:.2f}")
+                self.attach_note(f"Tip: ${donation_value:.2f}")
+
+                return donation_value
+            except Exception as e:
+                self.logger.error(f"Failed to get donation value from checkout: {str(e)}")
+                self.logger.exception(f"Failed to get donation value from checkout: {str(e)}")
+        return 0.00
+
+    def get_service_charge_amount(self):
+        if self.is_element_present(CheckoutPageLocators.SERVICE_CHARGE_VALUE, timeout=1):
+            try:
+                self.is_element_displayed(CheckoutPageLocators.SERVICE_CHARGE_VALUE, timeout=5)
+
+                service_charge_value = self.get_text_3(CheckoutPageLocators.SERVICE_CHARGE_VALUE)
+                service_charge_value = float(service_charge_value.replace('$', '').strip())
+
+                self.logger.info(f"Service charge retrieved from checkout: ${service_charge_value:.2f}")
+
+                return service_charge_value
+            except Exception as e:
+                self.logger.error(f"Failed to get service charge value from checkout: {str(e)}")
+                self.logger.exception(f"Failed to get service charge value from checkout: {str(e)}")
+        return 0.00
+
 
     @allure.step("Get subtotal from checkout page")
     def get_subtotal(self):
@@ -230,15 +255,19 @@ class CheckoutPage(BasePage):
         subtotal = self.get_subtotal()
         tax = self.get_tax_amount()
         tip = self.get_tip_amount()
-        calculated_total = round(subtotal + tax + tip, 2)
+        donation = self.get_donation_amount()
+        service_charge = self.get_service_charge_amount()
+        total = self.get_total()
 
+        calculated_total = round(subtotal + tax + tip + donation + service_charge, 2)
         self.logger.info(
             f"Calculated total: ${calculated_total:.2f} "
-            f"(${subtotal:.2f} + ${tax:.2f} + ${tip:.2f})"
+            f"(${subtotal:.2f} + ${tax:.2f} + ${tip:.2f} + ${donation:.2f} + ${service_charge:.2f})"
         )
+        if calculated_total == total:
+            return True
+        return False
 
-
-        return calculated_total
 
 
 

@@ -1,13 +1,18 @@
+import json
 import allure
 from src.pages.base_page import BasePage
 from src.locators.store_locators import ConfirmationPageLocators
 from src.utils.logger import Logger
+from src.utils.email_service import EmailService
+import pytest_check as check
 
 
 class ConfirmationPage(BasePage):
     def __init__(self, driver):
         super().__init__(driver)
-        self.logger = Logger("PaymentPage")
+        self.logger = Logger("ConfirmationPage")  # Changed from PaymentPage
+        self.email_service = EmailService()
+        self.test_email = None
 
 
 
@@ -75,9 +80,7 @@ class ConfirmationPage(BasePage):
             self.logger.error(f"Failed to get total: {str(e)}")
             return 0.0
 
-    @allure.step("Confirmation page")
     def calculate_expected_total(self):
-        self.attach_screenshot("Confirmation Page")
         subtotal = self.get_subtotal()
         tax = self.get_tax()
         tip = self.get_tip()
@@ -112,6 +115,119 @@ class ConfirmationPage(BasePage):
             if "Successful" in text:
                 return True
         return False
+
+    def send_and_verify_email_receipt(self, expected_check_number, expected_total, test_name="Checkout Test"):
+        """
+        Complete email receipt flow with MailSlurp
+
+        Args:
+            expected_check_number: Expected check number
+            expected_total: Expected total amount
+            test_name: Name of the test (from Allure title)
+        """
+        self.logger.info("=" * 60)
+        self.logger.info("EMAIL RECEIPT VERIFICATION")
+        self.logger.info("=" * 60)
+
+        with allure.step("Generate test email address"):
+            # Pass test name to email service
+            self.test_email, inbox_id = self.email_service.get_test_email(test_name=test_name)
+            allure.attach(
+                self.test_email,
+                name="📧 Test Email Address",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            self.logger.info(f"Using email: {self.test_email}")
+
+        with allure.step("Enter email and send receipt"):
+            self.click(ConfirmationPageLocators.EMAIL_BUTTON)
+
+            email_field = self.find_element(ConfirmationPageLocators.EMAIL_FIELD)
+            email_field.clear()
+            email_field.send_keys(self.test_email)
+
+            self.click(ConfirmationPageLocators.EMAIL_SEND_BUTTON)
+            self.attach_screenshot("Email Receipt Request")
+
+            try:
+                confirmation = self.wait_for_element_visible(
+                    ConfirmationPageLocators.EMAIL_CONFIRMATION,
+                    timeout=10
+                )
+                confirmation_text = confirmation.text
+                expected_msg = f"Receipt sent to {self.test_email}"
+
+                check.equal(confirmation_text, expected_msg, "Email confirmation message incorrect")
+                self.logger.info(f"✓ Email confirmation: {confirmation_text}")
+
+            except Exception as e:
+                self.logger.error(f"Failed to get email confirmation: {str(e)}")
+
+        with allure.step("Wait for email to arrive"):
+            email_data = self.email_service.wait_for_email(
+                inbox_id=inbox_id,
+                subject_contains=None,
+                timeout=90
+            )
+
+            if not email_data:
+                self.logger.error("Email did not arrive within timeout")
+                return {
+                    'passed': False,
+                    'error': 'Email not received within 90 seconds'
+                }
+
+            self.logger.info(f"✓ Email received! Subject: {email_data.get('subject', 'N/A')}")
+
+        with allure.step("Verify email receipt contents"):
+            verification_result = self.email_service.verify_receipt_complete(
+                email_data=email_data,
+                expected_check_number=expected_check_number,
+                expected_total=expected_total
+            )
+
+            # Create beautified summary for Allure
+            summary = {
+                "✅ PASSED" if verification_result['passed'] else "❌ FAILED": verification_result['passed'],
+                "Check Number": {
+                    "Expected": verification_result['check_number']['expected'],
+                    "Found": verification_result['check_number']['found'],
+                    "Match": "✓" if verification_result['check_number']['passed'] else "✗"
+                },
+                "Total Amount": {
+                    "Expected": f"${verification_result['expected_total']:.2f}",
+                    "Email Total": f"${verification_result['calculations']['email_total']:.2f}",
+                    "Match": "✓" if verification_result['total_matches'] else "✗"
+                },
+                "Receipt Breakdown": {
+                    "Subtotal": f"${verification_result['calculations']['breakdown']['subtotal']:.2f}",
+                    "Tax": f"${verification_result['calculations']['breakdown']['tax']:.2f}",
+                    "Service Charge": f"${verification_result['calculations']['breakdown']['service_charge']:.2f}",
+                    "Tip": f"${verification_result['calculations']['breakdown']['tip']:.2f}",
+                    "Donation": f"${verification_result['calculations']['breakdown']['donation']:.2f}"
+                },
+                "Calculation Check": {
+                    "Calculated Total": f"${verification_result['calculations']['calculated_total']:.2f}",
+                    "Email Total": f"${verification_result['calculations']['email_total']:.2f}",
+                    "Difference": f"${verification_result['calculations']['difference']:.2f}",
+                    "Valid": "✓" if verification_result['calculations']['passed'] else "✗"
+                }
+            }
+
+            allure.attach(
+                json.dumps(summary, indent=2, ensure_ascii=False),
+                name="📊 Email Verification Summary",
+                attachment_type=allure.attachment_type.JSON
+            )
+
+        self.logger.info("=" * 60)
+        if verification_result['passed']:
+            self.logger.info("✓ EMAIL VERIFICATION PASSED")
+        else:
+            self.logger.error("✗ EMAIL VERIFICATION FAILED")
+        self.logger.info("=" * 60)
+
+        return verification_result
 
 
 
