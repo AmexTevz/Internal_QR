@@ -76,7 +76,16 @@ def test_checkout_flow_upsell(browser_factory, endpoint_setup, table):
     12. Verify total amount matches between checkout and payment pages
     13. Complete payment
     14. Verify check number, breakdowns, and calculations on the final page are correct
+    15. Generate unique test email address with test name and timestamp
+    16. Send email receipt to generated address
+    17. Wait for email to arrive in inbox
+    18. Verify email receipt contents:
+        - Check number matches expected value
+        - Total amount matches payment total
+        - All financial calculations are correct (subtotal + tax + service charge + tip + donation = total)
     """
+
+    test_title = "Checkout Flow with Upsell Items"
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
@@ -167,6 +176,13 @@ def test_checkout_flow_upsell(browser_factory, endpoint_setup, table):
                                     "Check number does not match in confirmation page")
                         check.equal(confirmation_page.calculate_expected_total(), True,
                                     "Confirmation Page Total is incorrect")
+
+                        email_verification = confirmation_page.send_and_verify_email_receipt(
+                            expected_check_number=api_check_number,
+                            expected_total=payment_page_total,
+                            test_name=test_title
+                        )
+                        check.equal(email_verification['passed'], True, "Email receipt verification failed")
                 else:
                     with allure.step(f"Upsell items are not present - Customer navigates to payment page {table}"):
                         payment_page_total = payment_page.get_total_amount()
@@ -181,6 +197,13 @@ def test_checkout_flow_upsell(browser_factory, endpoint_setup, table):
                                     "Confirmation Page Total is incorrect")
                         check.equal(confirmation_page.calculate_expected_total(), True,
                                     "Confirmation Page breakdown does not add up")
+
+                        email_verification = confirmation_page.send_and_verify_email_receipt(
+                            expected_check_number=api_check_number,
+                            expected_total=payment_page_total,
+                            test_name=test_title
+                        )
+                        check.equal(email_verification['passed'], True, "Email receipt verification failed")
 
 
     except Exception as e:

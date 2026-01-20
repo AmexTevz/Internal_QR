@@ -117,20 +117,12 @@ class ConfirmationPage(BasePage):
         return False
 
     def send_and_verify_email_receipt(self, expected_check_number, expected_total, test_name="Checkout Test"):
-        """
-        Complete email receipt flow with MailSlurp
 
-        Args:
-            expected_check_number: Expected check number
-            expected_total: Expected total amount
-            test_name: Name of the test (from Allure title)
-        """
         self.logger.info("=" * 60)
         self.logger.info("EMAIL RECEIPT VERIFICATION")
         self.logger.info("=" * 60)
 
         with allure.step("Generate test email address"):
-            # Pass test name to email service
             self.test_email, inbox_id = self.email_service.get_test_email(test_name=test_name)
             allure.attach(
                 self.test_email,

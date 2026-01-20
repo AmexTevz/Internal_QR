@@ -80,7 +80,7 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
     14. Verify check number, breakdowns, and calculations on the final page are correct
     15. Generate unique test email address with test name and timestamp
     16. Send email receipt to generated address
-    17. Wait for email to arrive in inbox (90s timeout)
+    17. Wait for email to arrive in inbox
     18. Verify email receipt contents:
         - Check number matches expected value
         - Total amount matches payment total
@@ -164,11 +164,10 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
             check.equal(confirmation_page.calculate_expected_total(), True,
                         "Confirmation Page breakdown does not add up")
 
-            # Pass test name to email verification
             email_verification = confirmation_page.send_and_verify_email_receipt(
                 expected_check_number=api_check_number,
                 expected_total=payment_page_total,
-                test_name=test_title  # Pass the test title
+                test_name=test_title
             )
             check.equal(email_verification['passed'], True, "Email receipt verification failed")
 

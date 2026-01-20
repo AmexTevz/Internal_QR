@@ -50,6 +50,9 @@ class CartPageLocators:
     ORDER_MORE_BUTTON = (By.CSS_SELECTOR, "#add-more-button")
     CHECKOUT_BUTTON = (By.XPATH, "//button[text()='Checkout']")
     LOADER = (By.CSS_SELECTOR, '.spinner-border')
+    NO_CHECK_MESSAGE = (By.CSS_SELECTOR, ".error-title")
+    TRY_AGAIN_BUTTON = (By.CSS_SELECTOR, "#try-again-button")
+    BROWSE_MENU_BUTTON = (By.CSS_SELECTOR, "#browse-menu-button")
 
 class CheckoutPageLocators:
     CHECK_NUMBER_CHECKOUT = (By.CSS_SELECTOR, "#dinein-check-number")

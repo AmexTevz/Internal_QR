@@ -76,8 +76,15 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
     13. Verify total amount matches between checkout and payment pages
     14. Complete payment
     15. Verify check number, breakdowns, and calculations on the final page are correct
+    16. Generate unique test email address with test name and timestamp
+    17. Send email receipt to generated address
+    18. Wait for email to arrive in inbox
+    19. Verify email receipt contents:
+        - Check number matches expected value
+        - Total amount matches payment total
+        - All financial calculations are correct (subtotal + tax + service charge + tip + donation = total)
     """
-
+    test_title = "Checkout Flow with Additional Rounds"
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
@@ -155,6 +162,13 @@ def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
             check.equal(confirmation_page.get_total(), payment_page_total, "Confirmation Page Total is incorrect")
             check.equal(confirmation_page.calculate_expected_total(), True,
                         "Confirmation Page breakdown does not add up")
+
+            email_verification = confirmation_page.send_and_verify_email_receipt(
+                expected_check_number=api_check_number,
+                expected_total=payment_page_total,
+                test_name=test_title  # Pass the test title
+            )
+            check.equal(email_verification['passed'], True, "Email receipt verification failed")
 
 
 
