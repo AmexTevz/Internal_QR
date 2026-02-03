@@ -14,6 +14,7 @@ from src.data.endpoints.combined import DigitalOrderAPI, set_current_api
 from src.utils.navigation import Navigation
 from src.data.table_config import DEFAULT_TABLE_NUMBER
 from src.utils.console_monitor import ConsoleMonitor
+from src.utils.network_tracker import NetworkTracker  # ← NEW: Import network tracker
 import inspect
 import shutil
 import os
@@ -71,7 +72,8 @@ def endpoint_setup(table):
 @pytest.fixture(scope="function")
 def browser_factory(endpoint_setup):
     drivers = []
-    temp_dirs = []  # ← NEW: Track temp directories for cleanup
+    temp_dirs = []
+    trackers = []  # ← NEW: Track network trackers
     api_setup = endpoint_setup
 
     def _create_browsers(*browser_types):
@@ -89,12 +91,15 @@ def browser_factory(endpoint_setup):
                 options.add_argument("--silent")
                 options.add_argument("--disable-logging")
 
-                # ← NEW: Track the temp directory path
                 temp_dir = f"/tmp/chrome_test_{id(options)}"
                 options.add_argument(f"--user-data-dir={temp_dir}")
-                temp_dirs.append(temp_dir)  # ← NEW: Add to cleanup list
+                temp_dirs.append(temp_dir)
 
-                options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
+                # ← NEW: Enable performance logging for network tracking
+                options.set_capability("goog:loggingPrefs", {
+                    "browser": "ALL",
+                    "performance": "ALL"  # ← NEW: Add performance logs
+                })
 
                 service = ChromeService(ChromeDriverManager().install())
                 driver = webdriver.Chrome(service=service, options=options)
@@ -103,14 +108,18 @@ def browser_factory(endpoint_setup):
                 options = webdriver.EdgeOptions()
                 options.add_argument("--disable-blink-features=AutomationControlled")
 
-                # ← NEW: Track the temp directory path
                 temp_dir = f"/tmp/edge_test_{id(options)}"
                 options.add_argument(f"--user-data-dir={temp_dir}")
-                temp_dirs.append(temp_dir)  # ← NEW: Add to cleanup list
+                temp_dirs.append(temp_dir)
 
                 options.add_experimental_option("excludeSwitches", ["enable-automation"])
                 options.add_experimental_option('useAutomationExtension', False)
-                options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
+
+                # ← NEW: Enable performance logging
+                options.set_capability("goog:loggingPrefs", {
+                    "browser": "ALL",
+                    "performance": "ALL"  # ← NEW: Add performance logs
+                })
 
                 service = EdgeService(EdgeChromiumDriverManager().install())
                 driver = webdriver.Edge(service=service, options=options)
@@ -120,6 +129,11 @@ def browser_factory(endpoint_setup):
 
             # Navigate to table URL
             Navigation.navigate(driver, api_setup.session_id, api_setup.table_num)
+
+            # ← NEW: Create network tracker for this driver
+            tracker = NetworkTracker(driver)
+            trackers.append(tracker)
+
             drivers.append(driver)
 
         return drivers
@@ -127,10 +141,23 @@ def browser_factory(endpoint_setup):
     yield _create_browsers
 
     # ========================================================================
-    # TEARDOWN: Console check, quit drivers, cleanup temp directories
+    # TEARDOWN: Network capture, Console check, quit drivers, cleanup
     # ========================================================================
 
-    # Console safety check
+    # ← NEW: 1. CAPTURE NETWORK PERFORMANCE FIRST
+    for tracker in trackers:
+        try:
+            print(f"\n{'=' * 60}")
+            print(f"CAPTURING API NETWORK PERFORMANCE")
+            print(f"{'=' * 60}")
+            tracker.capture()
+            tracker.attach_to_allure()
+            print(f"✓ Network performance captured")
+            print(f"{'=' * 60}\n")
+        except Exception as e:
+            print(f"⚠️ Failed to capture network performance: {e}")
+
+    # 2. CONSOLE CHECK (Your existing code - unchanged)
     for drv in drivers:
         try:
             with allure.step("🔍 Automatic Console Safety Check"):
@@ -138,40 +165,68 @@ def browser_factory(endpoint_setup):
                 results = monitor.check_all()
                 monitor.report_to_allure()
 
-                if results['has_issues']:
-                    summary = f"⚠️ CONSOLE ISSUES DETECTED\n"
-                    summary += f"Errors: {len(results['errors'])}\n"
-                    summary += f"PII Violations: {len(results['pii_violations'])}\n"
+                # Report benign errors (informational only, don't fail)
+                if results.get('has_benign_issues', False):
+                    benign_summary = f"⚠️ BENIGN NETWORK ISSUES (Informational)\n"
+                    benign_summary += f"Network Errors: {len(results.get('benign_errors', []))}\n\n"
+
+                    # List first 5 benign errors
+                    for i, error in enumerate(results.get('benign_errors', [])[:5], 1):
+                        msg = error.get('message', 'Unknown')[:150]
+                        benign_summary += f"{i}. {msg}...\n"
+
+                    if len(results.get('benign_errors', [])) > 5:
+                        benign_summary += f"\n... and {len(results['benign_errors']) - 5} more\n"
 
                     allure.attach(
-                        summary,
-                        name="Console Issues Summary",
+                        benign_summary,
+                        name="⚠️ Benign Network Issues",
+                        attachment_type=allure.attachment_type.TEXT
+                    )
+
+                    print(f"⚠️ {len(results['benign_errors'])} benign network errors detected (not failing test)")
+
+                # Only fail on CRITICAL issues
+                if results['has_issues']:
+                    critical_summary = f"❌ CRITICAL CONSOLE ISSUES\n"
+                    critical_summary += f"Critical Errors: {len(results['errors'])}\n"
+                    critical_summary += f"PII Violations: {len(results['pii_violations'])}\n"
+
+                    allure.attach(
+                        critical_summary,
+                        name="❌ Critical Issues",
                         attachment_type=allure.attachment_type.TEXT
                     )
 
                     pytest.fail(
                         f"Console violations detected: "
-                        f"{len(results['errors'])} errors, "
+                        f"{len(results['errors'])} critical errors, "
                         f"{len(results['pii_violations'])} PII violations"
                     )
                 else:
+                    # No critical issues
+                    if results.get('has_benign_issues', False):
+                        status = f"✅ No critical issues ({len(results['benign_errors'])} benign network errors logged)"
+                    else:
+                        status = "✅ No console issues detected"
+
                     allure.attach(
-                        "✅ No console issues detected",
-                        name="Console Clean",
+                        status,
+                        name="Console Status",
                         attachment_type=allure.attachment_type.TEXT
                     )
 
         except Exception as e:
             print(f"Warning: Could not perform console check: {str(e)}")
 
-    # Quit all drivers
+    # 3. QUIT DRIVERS (Your existing code - unchanged)
     for drv in drivers:
         try:
             drv.quit()
         except Exception as e:
             print(f"Error closing browser: {str(e)}")
 
-    # ← NEW: Clean up temp directories
+    # 4. CLEANUP TEMP DIRECTORIES (Your existing code - unchanged)
     print(f"\n{'=' * 60}")
     print(f"CLEANUP: Removing temporary browser profiles")
     print(f"{'=' * 60}")
@@ -187,5 +242,3 @@ def browser_factory(endpoint_setup):
             print(f"✗ Failed to remove {temp_dir}: {str(e)}")
 
     print(f"{'=' * 60}\n")
-
-

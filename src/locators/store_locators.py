@@ -90,7 +90,7 @@ class PaymentPageLocators:
     POSTAL_CODE = (By.CSS_SELECTOR, "#PostalCode")
     MAKE_PAYMENT = (By.XPATH, "//button[text()='Pay now']")
     TOTAL_AMOUNT = (By.XPATH, "//p[starts-with(text(), '$')]")
-    LOADER = (By.CSS_SELECTOR, '.loader')
+    LOADER = (By.CSS_SELECTOR, '.spinner-border')
 
 class ConfirmationPageLocators:
     CONFIRMATION_MESSAGE = (By.CSS_SELECTOR, "#receipt-success-title")
@@ -107,6 +107,7 @@ class ConfirmationPageLocators:
     EMAIL_SEND_BUTTON = (By.CSS_SELECTOR, ".toast-btn-primary")
     CANCEL_BUTTON = (By.CSS_SELECTOR, "toast-btn-secondary")
     EMAIL_CONFIRMATION = (By.CSS_SELECTOR, ".toast-message")
+    LOADER = (By.CSS_SELECTOR, '.spinner-border')
 
 
 

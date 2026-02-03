@@ -1,8 +1,7 @@
 import time
 import re
+import requests
 from datetime import datetime
-from mailslurp_client import Configuration, ApiClient, InboxControllerApi, WaitForControllerApi
-from mailslurp_client.exceptions import ApiException
 from src.utils.logger import Logger
 
 
@@ -10,131 +9,151 @@ class EmailService:
     def __init__(self):
         self.logger = Logger("EmailService")
 
-        # MailSlurp configuration
-        self.api_key = "sk_hBJ9YbQmlCj0x5Fp_IBR0xwaUTvZwuXYLmYYejAYF9tEQ0W7YjlKV4XPhHrLzMa7laGvj8dbw3JQ0dju8"
+        # Mailinator configuration
+        self.api_token = "3d7babc101164861b1ab7c203020a54c"  # ✅ FIXED TOKEN
+        self.private_domain = "team645380.testinator.email"
+        self.base_url = "https://api.mailinator.com/api/v2"  # ✅ FIXED URL
 
-        configuration = Configuration()
-        configuration.api_key['x-api-key'] = self.api_key
-
-        self.api_client = ApiClient(configuration)
-        self.inbox_controller = InboxControllerApi(self.api_client)
-        self.wait_controller = WaitForControllerApi(self.api_client)
-
-        self.current_inbox = None
         self.current_email = None
+        self.current_inbox = None
 
-    def get_test_email(self, test_name="test"):
+    def get_test_email(self, test_name="test", table_number=None, use_private_domain=True):
         """
-        Create a new MailSlurp inbox with test name and timestamp
+        Generate email address with table number and timestamp only
 
         Args:
-            test_name: Name of the test (e.g., "Simple Checkout Flow")
+            test_name: NOT USED (kept for compatibility)
+            table_number: Table number (will be primary identifier)
+            use_private_domain: Use private domain vs public
 
         Returns:
-            tuple: (email_address, inbox_id)
+            tuple: (email_address, domain)
         """
-        try:
-            # Clean test name: lowercase, replace spaces with hyphens
-            clean_name = test_name.lower().replace(' ', '-').replace('_', '-')
-            # Remove special characters
-            clean_name = re.sub(r'[^a-z0-9-]', '', clean_name)
+        # ✅ ADD DEBUG LOGGING
+        self.logger.info(f"🔍 get_test_email called with table_number={table_number}, type={type(table_number)}")
 
-            # Format timestamp: MONTH_DAY_HOUR_MINUTE (01_20_09_40)
-            now = datetime.now()
-            timestamp = now.strftime("%m_%d_%H_%M")
+        # Compact timestamp: HHMMSS
+        now = datetime.now()
+        timestamp = now.strftime("%H%M%S")
 
-            # Create email: test-name-01_20_09_40@mailslurp.biz
-            email_prefix = f"{clean_name}-{timestamp}"
+        # ✅ Use "is not None" to handle table 0
+        if table_number is not None:
+            inbox_name = f"{table_number}-{timestamp}"
+            self.logger.info(f"✅ Using table number: {table_number}")
+        else:
+            inbox_name = f"test-{timestamp}"
+            self.logger.info(f"⚠️ No table number provided, using fallback")
 
-            # Create inbox
-            inbox = self.inbox_controller.create_inbox(
-                name=email_prefix  # Label the inbox
-            )
+        domain = self.private_domain if use_private_domain else "mailinator.com"
+        email_address = f"{inbox_name}@{domain}"
 
-            self.current_inbox = inbox.id
-            self.current_email = inbox.email_address
+        self.current_email = email_address
+        self.current_inbox = inbox_name
 
-            self.logger.info(f"Created inbox: {self.current_email}")
-            self.logger.info(f"Test name: {test_name}")
-            self.logger.info(f"Timestamp: {timestamp}")
-            self.logger.info(f"Inbox ID: {self.current_inbox}")
+        self.logger.info(f"📧 Generated email: {email_address}")
 
-            return self.current_email, self.current_inbox
+        return email_address, domain
 
-        except ApiException as e:
-            self.logger.error(f"Failed to create inbox: {str(e)}")
-            raise
+    def wait_for_email(self, email=None, domain=None, subject_contains=None, timeout=90):
+        """Wait for email using polling"""
+        if email:
+            inbox_name = email.split('@')[0]
+        else:
+            inbox_name = self.current_inbox
 
-    def wait_for_email(self, email=None, inbox_id=None, subject_contains=None, timeout=60):
-        """
-        Wait for email to arrive in MailSlurp inbox
-        """
-        inbox_id = inbox_id or self.current_inbox
-
-        if not inbox_id:
-            self.logger.error("No inbox ID provided")
+        if not inbox_name:
+            self.logger.error("No inbox provided")
             return None
 
-        self.logger.info(f"Waiting for email in inbox {inbox_id}...")
-        timeout_ms = timeout * 1000
+        self.logger.info(f"Waiting for email in {inbox_name}...")
+        self.logger.info(f"Timeout: {timeout}s")
 
-        try:
-            email_obj = self.wait_controller.wait_for_latest_email(
-                inbox_id=inbox_id,
-                timeout=timeout_ms,
-                unread_only=True
-            )
+        start_time = time.time()
+        poll_interval = 3  # Poll every 3 seconds
 
-            self.logger.info(f"✓ Email received!")
-            self.logger.info(f"  Subject: {email_obj.subject}")
-            self.logger.info(f"  From: {email_obj._from}")  # ✅ FIXED HERE
+        while (time.time() - start_time) < timeout:
+            try:
+                url = f"{self.base_url}/domains/private/inboxes/{inbox_name}"
+                params = {
+                    "token": self.api_token,
+                    "limit": 1
+                }
 
-            email_data = {
-                'id': email_obj.id,
-                'subject': email_obj.subject or '',
-                'from': email_obj._from or '',  # ✅ AND HERE
-                'to': email_obj.to or [],
-                'body': email_obj.body or '',
-                'text_body': email_obj.body or '',
-                'html': email_obj.body or '',
-                'received_at': email_obj.created_at
-            }
+                response = requests.get(url, params=params, timeout=10)
 
-            if subject_contains:
-                if subject_contains.lower() not in email_data['subject'].lower():
-                    self.logger.warning(f"Subject doesn't match filter: {subject_contains}")
-                    return None
+                if response.status_code == 200:
+                    data = response.json()
+                    messages = data.get('msgs', [])
 
-            return email_data
+                    if messages:
+                        # Found a message, fetch full content
+                        msg_id = messages[0]['id']
 
-        except ApiException as e:
-            if "timeout" in str(e).lower():
-                self.logger.warning(f"No email received within {timeout}s")
-            else:
-                self.logger.error(f"Error waiting for email: {str(e)}")
-            return None
+                        msg_url = f"{self.base_url}/domains/private/messages/{msg_id}"
+                        msg_response = requests.get(msg_url, params={"token": self.api_token})
+
+                        if msg_response.status_code == 200:
+                            full_message = msg_response.json()
+                            subject = full_message.get('subject', '')
+
+                            self.logger.info(f"✓ Email received!")
+                            self.logger.info(f"  Subject: {subject}")
+
+                            email_data = {
+                                'id': full_message.get('id', ''),
+                                'subject': subject,
+                                'from': full_message.get('from', ''),
+                                'to': full_message.get('to', ''),
+                                'body': full_message.get('parts', [{}])[0].get('body', ''),
+                                'text_body': self._extract_text_part(full_message),
+                                'html': self._extract_html_part(full_message),
+                                'received_at': full_message.get('time', '')
+                            }
+
+                            return email_data
+
+            except Exception as e:
+                self.logger.error(f"Error checking inbox: {str(e)}")
+
+            # Wait before next poll
+            elapsed = time.time() - start_time
+            remaining = timeout - elapsed
+            self.logger.debug(f"Checking again in {poll_interval}s... ({remaining:.0f}s remaining)")
+            time.sleep(poll_interval)
+
+        self.logger.warning(f"No email received within {timeout}s")
+        return None
+
+    def _extract_text_part(self, message):
+        """Extract plain text part from message"""
+        parts = message.get('parts', [])
+        for part in parts:
+            if part.get('headers', {}).get('content-type', '').startswith('text/plain'):
+                return part.get('body', '')
+        # Fallback to first part
+        return parts[0].get('body', '') if parts else ''
+
+    def _extract_html_part(self, message):
+        """Extract HTML part from message"""
+        parts = message.get('parts', [])
+        for part in parts:
+            if part.get('headers', {}).get('content-type', '').startswith('text/html'):
+                return part.get('body', '')
+        return ''
 
     def strip_html(self, html_content):
         """Strip HTML tags and return plain text"""
         if not html_content:
             return ""
-
-        # Remove HTML tags
         text = re.sub(r'<[^>]+>', ' ', html_content)
-
-        # Remove extra whitespace
         text = ' '.join(text.split())
-
         return text
 
     def get_email_text(self, email_data):
         """Extract plain text content"""
         text = email_data.get('text_body') or email_data.get('body', '')
-
-        # If it's HTML, strip tags
         if '<html' in text.lower() or '<body' in text.lower():
             return self.strip_html(text)
-
         return text
 
     def get_email_html(self, email_data):
@@ -145,8 +164,6 @@ class EmailService:
         """Extract check/order number from receipt email"""
         text = self.get_email_text(email_data) or ""
         html = self.get_email_html(email_data) or ""
-
-        # Try plain text first
         full_content = text + " " + html
 
         self.logger.debug("=" * 60)
@@ -154,9 +171,8 @@ class EmailService:
         self.logger.debug(f"Plain text sample: {text[:200]}")
         self.logger.debug("=" * 60)
 
-        # Patterns to match check number
         patterns = [
-            r'Tab/Check/Order\s*#\s*(\d+)',  # With spaces/tags
+            r'Tab/Check/Order\s*#\s*(\d+)',
             r'Order\s*#\s*(\d+)',
             r'Check\s*#\s*(\d+)',
             r'Tab\s*#\s*(\d+)',
@@ -185,15 +201,13 @@ class EmailService:
 
         breakdown = {}
 
-        # IMPORTANT: Extract in specific order to avoid conflicts
-        # Use word boundaries to prevent "Subtotal" matching "total"
         patterns = {
             'subtotal': r'Subtotal:\s*\$\s*([\d,]+\.?\d*)',
             'tax': r'Tax:\s*\$\s*([\d,]+\.?\d*)',
             'service_charge': r'srvc chrg[^:]*:\s*\$\s*([\d,]+\.?\d*)',
             'tip': r'Tip:\s*\$\s*([\d,]+\.?\d*)',
             'donation': r'Donation:\s*\$\s*([\d,]+\.?\d*)',
-            'total': r'\bTotal:\s*\$\s*([\d,]+\.?\d*)',  # \b = word boundary
+            'total': r'\bTotal:\s*\$\s*([\d,]+\.?\d*)',
         }
 
         for key, pattern in patterns.items():
@@ -310,14 +324,3 @@ class EmailService:
         self.logger.info("=" * 60)
 
         return result
-
-    def delete_inbox(self, inbox_id=None):
-        """Delete inbox after test (optional cleanup)"""
-        inbox_id = inbox_id or self.current_inbox
-
-        if inbox_id:
-            try:
-                self.inbox_controller.delete_inbox(inbox_id)
-                self.logger.info(f"Deleted inbox: {inbox_id}")
-            except ApiException as e:
-                self.logger.warning(f"Failed to delete inbox: {str(e)}")

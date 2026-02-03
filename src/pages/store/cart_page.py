@@ -14,6 +14,7 @@ class CartPage(BasePage):
     @allure.step("Get check and table numbers from basket")
     def get_check_number_in_basket(self):
         try:
+            self.wait_for_loading_to_disappear(CartPageLocators.LOADER, timeout=300)
             self.wait_for_element_visible(CartPageLocators.CHECK_NUMBER_CART)
             if self.is_element_present(CartPageLocators.CHECK_NUMBER_CART):
                 check_number = self.get_text(CartPageLocators.CHECK_NUMBER_CART)
@@ -30,7 +31,6 @@ class CartPage(BasePage):
 
     def get_check_table_in_basket(self):
         try:
-            self.wait_for_element_visible(CartPageLocators.TABLE_NUMBER_CART)
             if self.is_element_present(CartPageLocators.TABLE_NUMBER_CART):
                 table_number = self.get_text(CartPageLocators.TABLE_NUMBER_CART)
                 table_number = table_number.split()[-1].strip()

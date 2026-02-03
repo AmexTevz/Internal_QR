@@ -13,8 +13,6 @@ from src.data.endpoints.close_table import close_table
 import pytest_check as check
 
 
-
-
 def attach_note(note_text, name="Note"):
     allure.attach(
         note_text,
@@ -50,17 +48,18 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [51]
+TABLES = [52,53,54,55,56,57,58,59,60,61]
 
 @pytest.mark.parametrize("table", TABLES)
-@pytest.mark.checkout
-@pytest.mark.checkout_simple
+@pytest.mark.checkout_parallel
+@pytest.mark.checkout_with_upsell_parallel
 @pytest.mark.all
 @allure.feature("Menu")
 @allure.story("Checkout")
-@allure.title("Simple Checkout Flow")
-def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
+@allure.title("Checkout Flow with Upsell Items")
+def test_checkout_flow_upsell(browser_factory, endpoint_setup, table):
     """
+    Perform steps on multiple tables in parallel to test behaviour with different loads
     Test checkout flow with multiple ordering rounds before payment.
 
     Flow:
@@ -72,8 +71,8 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
     6. Navigate to checkout page
     7. Verify total item count, table number, and check number
     8. Verify subtotal matches API data
-    9. Do not add tip or charity
-    10. Verify total equals subtotal + tax
+    9. Send random tip and apply charity
+    10. Verify total equals subtotal + tip + tax + donation
     11. Navigate to payment page
     12. Verify total amount matches between checkout and payment pages
     13. Complete payment
@@ -86,18 +85,20 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
         - Total amount matches payment total
         - All financial calculations are correct (subtotal + tax + service charge + tip + donation = total)
     """
-    test_title = "Simple Checkout Flow"
+
+    test_title = "Checkout Flow with Upsell Items"
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
+
     menu_page = MenuPage(chrome)
     cart_page = CartPage(chrome)
     checkout_page = CheckoutPage(chrome)
     payment_page = PaymentPage(chrome)
     confirmation_page = ConfirmationPage(chrome)
 
-    num_items = 1
-    quantity = random.randint(1, 3)
+    num_items = 2
+    quantity = 2
     reorder_count = 0
 
     try:
@@ -146,33 +147,65 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
                 api_subtotal = get_api_data('subtotal')
                 check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect")
 
-                checkout_page.manage_tips(0)
-
+                checkout_page.manage_tips(random.uniform(3.99, 8.99))
+                charity_applied = checkout_page.apply_charity()
+                check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
                 check.equal(checkout_page.calculate_expected_total(), True, "Checkout Page breakdown does not add up")
                 checkout_page_total = checkout_page.get_total()
-        with allure.step(f"Customer navigates to payment page {table}"):
-                checkout_page.go_to_payment_page()
-                payment_page_total = payment_page.get_total_amount()
-                check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
-                payment_page.make_the_payment()
 
-        with allure.step(f"Customer navigates to confirmation page {table}"):
-            check.equal(confirmation_page.get_order_status(), True, "Confirmation Page Status is incorrect")
-            check.equal(api_check_number, confirmation_page.get_order_number(),
-                        "Check number does not match in confirmation page")
-            check.equal(confirmation_page.get_total(), payment_page_total, "Confirmation Page Total is incorrect")
-            check.equal(confirmation_page.calculate_expected_total(), True,
-                        "Confirmation Page breakdown does not add up")
+                upsell_items_found = checkout_page.go_to_payment_page(upsell=True)
+                check.not_equal(upsell_items_found, False, "Upsell items were not found")
+                if upsell_items_found:
+                    with allure.step(f"Customer accepts UPSELL and navigates to payment page"):
+                        cart_page.place_order()
+                        menu_page.go_to_basket()
+                        cart_page.navigate_to_checkout_page()
+                        app_subtotal = checkout_page.get_subtotal()
+                        api_subtotal = get_api_data('subtotal')
+                        check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect after adding the upsell item")
+                        checkout_page_total = checkout_page.get_total()
 
-            email_verification = confirmation_page.send_and_verify_email_receipt(
-                expected_check_number=api_check_number,
-                expected_total=payment_page_total,
-                test_name=test_title,
-                table_number=table
-            )
-            check.equal(email_verification['passed'], True, "Email receipt verification failed")
+                    with allure.step(f"Customer navigates to payment page {table}"):
+                        checkout_page.go_to_payment_page()
+                        payment_page_total = payment_page.get_total_amount()
+                        check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
+                        payment_page.make_the_payment()
 
+                    with allure.step(f"Customer navigates to confirmation page {table}"):
+                        check.equal(confirmation_page.get_order_status(), True, "Confirmation Page Status is incorrect")
+                        check.equal(api_check_number, confirmation_page.get_order_number(),
+                                    "Check number does not match in confirmation page")
+                        check.equal(confirmation_page.calculate_expected_total(), True,
+                                    "Confirmation Page Total is incorrect")
 
+                        email_verification = confirmation_page.send_and_verify_email_receipt(
+                            expected_check_number=api_check_number,
+                            expected_total=payment_page_total,
+                            test_name=test_title
+                        )
+                        check.equal(email_verification['passed'], True, "Email receipt verification failed")
+                else:
+                    with allure.step(f"Upsell items are not present - Customer navigates to payment page {table}"):
+                        payment_page_total = payment_page.get_total_amount()
+                        check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
+                        payment_page.make_the_payment()
+
+                    with allure.step(f"Customer navigates to confirmation page {table}"):
+                        check.equal(confirmation_page.get_order_status(), True, "Confirmation Page Status is incorrect")
+                        check.equal(api_check_number, confirmation_page.get_order_number(),
+                                    "Check number does not match in confirmation page")
+                        check.equal(confirmation_page.get_total(), payment_page_total,
+                                    "Confirmation Page Total is incorrect")
+                        check.equal(confirmation_page.calculate_expected_total(), True,
+                                    "Confirmation Page breakdown does not add up")
+
+                        email_verification = confirmation_page.send_and_verify_email_receipt(
+                            expected_check_number=api_check_number,
+                            expected_total=payment_page_total,
+                            test_name=test_title,
+                            table_number = table
+                        )
+                        check.equal(email_verification['passed'], True, "Email receipt verification failed")
 
 
     except Exception as e:

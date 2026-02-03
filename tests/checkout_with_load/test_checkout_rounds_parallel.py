@@ -1,5 +1,4 @@
 import random
-import time
 from datetime import datetime
 import pytest
 import allure
@@ -11,8 +10,6 @@ from src.pages.store.payment_page import PaymentPage
 from src.pages.store.confirmation_page import ConfirmationPage
 from src.data.endpoints.close_table import close_table
 import pytest_check as check
-
-
 
 
 def attach_note(note_text, name="Note"):
@@ -50,46 +47,49 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [51]
+TABLES = [69,71,72,73,74,75,76,77,78]
 
 @pytest.mark.parametrize("table", TABLES)
-@pytest.mark.checkout
-@pytest.mark.checkout_simple
+@pytest.mark.checkout_with_rounds_parallel
+@pytest.mark.checkout_parallel
 @pytest.mark.all
 @allure.feature("Menu")
 @allure.story("Checkout")
-@allure.title("Simple Checkout Flow")
-def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
+@allure.title("Checkout Flow with Additional Rounds")
+def test_checkout_flow_rounds(browser_factory, endpoint_setup, table):
     """
     Test checkout flow with multiple ordering rounds before payment.
 
     Flow:
+    Perform steps on multiple tables in parallel to test behaviour with different loads
     1. Navigate to main menu
     2. Verify logo exists and table number is correct
     3. Select items and place initial order
     4. Verify that the item and cart badges match the quantity of the selected items
     5. Verify check number and table number in cart match API
-    6. Navigate to checkout page
-    7. Verify total item count, table number, and check number
-    8. Verify subtotal matches API data
-    9. Do not add tip or charity
-    10. Verify total equals subtotal + tax
-    11. Navigate to payment page
-    12. Verify total amount matches between checkout and payment pages
-    13. Complete payment
-    14. Verify check number, breakdowns, and calculations on the final page are correct
-    15. Generate unique test email address with test name and timestamp
-    16. Send email receipt to generated address
-    17. Wait for email to arrive in inbox
-    18. Verify email receipt contents:
+    6. Perform 2 additional reorder rounds
+    7. Navigate to checkout page
+    8. Verify total item count, table number, and check number
+    9. Verify subtotal matches API data
+    10. Add tip and apply charity donation
+    11. Verify total equals subtotal + tip + tax + donation
+    12. Navigate to payment page
+    13. Verify total amount matches between checkout and payment pages
+    14. Complete payment
+    15. Verify check number, breakdowns, and calculations on the final page are correct
+    16. Generate unique test email address with test name and timestamp
+    17. Send email receipt to generated address
+    18. Wait for email to arrive in inbox
+    19. Verify email receipt contents:
         - Check number matches expected value
         - Total amount matches payment total
         - All financial calculations are correct (subtotal + tax + service charge + tip + donation = total)
     """
-    test_title = "Simple Checkout Flow"
+    test_title = "Checkout Flow with Additional Rounds"
     timestamp = datetime.now().strftime("%B %d, %Y %H:%M")
     allure.dynamic.title(f"Checkout Flow - {timestamp}")
     [chrome] = browser_factory("chrome")
+    attach_note("Checkout flow with multiple rounds.", "Test Description")
     menu_page = MenuPage(chrome)
     cart_page = CartPage(chrome)
     checkout_page = CheckoutPage(chrome)
@@ -97,12 +97,12 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
     confirmation_page = ConfirmationPage(chrome)
 
     num_items = 1
-    quantity = random.randint(1, 3)
-    reorder_count = 0
+    quantity = 2
+    reorder_count = 2
 
     try:
         with allure.step(f"Customer places the order on table {table}"):
-            with allure.step("First order round"):
+            with allure.step("Initial order"):
                 menu_page.navigate_to_main_menu()
                 menu_page.select_random_menu_items(num_items=num_items, quantity=quantity, verify_badges=True)
 
@@ -145,21 +145,21 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
                 app_subtotal = checkout_page.get_subtotal()
                 api_subtotal = get_api_data('subtotal')
                 check.equal(app_subtotal, api_subtotal, "Subtotal is incorrect")
-
-                checkout_page.manage_tips(0)
-
+                check.equal(checkout_page.verify_initial_tip_amount(), True, "Initial tip amount is incorrect")
+                checkout_page.manage_tips(random.uniform(2.99, 9.99))
+                charity_applied = checkout_page.apply_charity()
+                check.not_equal(charity_applied, 0, f"Charity Fail: $0 was applied")
                 check.equal(checkout_page.calculate_expected_total(), True, "Checkout Page breakdown does not add up")
                 checkout_page_total = checkout_page.get_total()
+
         with allure.step(f"Customer navigates to payment page {table}"):
                 checkout_page.go_to_payment_page()
                 payment_page_total = payment_page.get_total_amount()
                 check.equal(payment_page_total, checkout_page_total, "Payment Page Total is incorrect")
                 payment_page.make_the_payment()
-
         with allure.step(f"Customer navigates to confirmation page {table}"):
             check.equal(confirmation_page.get_order_status(), True, "Confirmation Page Status is incorrect")
-            check.equal(api_check_number, confirmation_page.get_order_number(),
-                        "Check number does not match in confirmation page")
+            check.equal(api_check_number, confirmation_page.get_order_number(), "Check number does not match in confirmation page")
             check.equal(confirmation_page.get_total(), payment_page_total, "Confirmation Page Total is incorrect")
             check.equal(confirmation_page.calculate_expected_total(), True,
                         "Confirmation Page breakdown does not add up")
@@ -167,11 +167,9 @@ def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
             email_verification = confirmation_page.send_and_verify_email_receipt(
                 expected_check_number=api_check_number,
                 expected_total=payment_page_total,
-                test_name=test_title,
-                table_number=table
+                test_name=test_title  # Pass the test title
             )
             check.equal(email_verification['passed'], True, "Email receipt verification failed")
-
 
 
 

@@ -201,7 +201,8 @@ def test_checkout_flow_upsell(browser_factory, endpoint_setup, table):
                         email_verification = confirmation_page.send_and_verify_email_receipt(
                             expected_check_number=api_check_number,
                             expected_total=payment_page_total,
-                            test_name=test_title
+                            test_name=test_title,
+                            table_number = table
                         )
                         check.equal(email_verification['passed'], True, "Email receipt verification failed")
 

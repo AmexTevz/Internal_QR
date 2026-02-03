@@ -23,8 +23,8 @@ class MenuPage(BasePage):
     def navigate_to_main_menu(self):
         try:
             self.logger.info("Starting navigation to main menu")
-            if self.is_element_present(MenuPageLocators.INITIAL_BUTTON):
-                time.sleep(2)
+            if self.is_element_present(MenuPageLocators.INITIAL_BUTTON,timeout=2):
+                time.sleep(1)
                 # self.driver.refresh()
                 self.click(MenuPageLocators.INITIAL_BUTTON)
             self.logger.info("Successfully navigated to main menu")
@@ -645,7 +645,7 @@ class MenuPage(BasePage):
     def go_to_basket(self):
         try:
             self.click(MenuPageLocators.CART_ICON)
-            self.wait_for_loading_to_disappear(MenuPageLocators.LOADER)
+            self.wait_for_loading_to_disappear(MenuPageLocators.LOADER, timeout=300)
             self.logger.info("Successfully navigated to basket")
             self.attach_screenshot("Basket page")
         except Exception as e:

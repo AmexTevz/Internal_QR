@@ -32,7 +32,7 @@ class PaymentPage(BasePage):
                 self.switch_to_default_content()
                 self.click(PaymentPageLocators.MAKE_PAYMENT)
                 self.attach_screenshot("After clicking the payment button")
-                self.wait_for_loading_to_disappear(PaymentPageLocators.LOADER)
+                self.wait_for_loading_to_disappear(PaymentPageLocators.LOADER, timeout=300)
             except TimeoutException:
                 pass
 

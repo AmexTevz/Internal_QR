@@ -35,13 +35,14 @@ class CheckoutPage(BasePage):
                 self.click(CheckoutPageLocators.TIP_CUSTOM)
                 tip_input = self.find_element(CheckoutPageLocators.TIP_CUSTOM_INPUT)
                 tip_input.clear()
-                tip_input.send_keys(amount)
+                formatted_amount = f"{float(amount):.2f}"
+                tip_input.send_keys(formatted_amount)
 
             applied_tip = self.get_text_3(CheckoutPageLocators.TIPS_VALUE).strip()
 
             if applied_tip != '$0.00':
-                self.logger.debug(f"tips applied - {applied_tip}")
-                self.attach_note(f"Tips applied: {applied_tip}")
+                self.logger.debug(f"tips applied - {float(applied_tip):.2}")
+                self.attach_note(f"Tips applied: {float(applied_tip):.2}")
                 self.attach_screenshot("After applying the tips")
             else:
                 self.logger.debug("Tip was not added")

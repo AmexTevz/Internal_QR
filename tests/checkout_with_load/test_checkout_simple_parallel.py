@@ -50,17 +50,18 @@ def get_api_data(field):
 
     return field_map.get(field, None)
 
-TABLES = [51]
+TABLES = [51,52,53,54,55]
 
 @pytest.mark.parametrize("table", TABLES)
-@pytest.mark.checkout
-@pytest.mark.checkout_simple
+@pytest.mark.checkout_parallel
+@pytest.mark.checkout_simple_parallel
 @pytest.mark.all
 @allure.feature("Menu")
 @allure.story("Checkout")
 @allure.title("Simple Checkout Flow")
 def test_checkout_flow_regular(browser_factory, endpoint_setup, table):
     """
+    Perform steps on multiple tables in parallel to test behaviour with different loads
     Test checkout flow with multiple ordering rounds before payment.
 
     Flow:

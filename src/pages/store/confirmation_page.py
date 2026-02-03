@@ -110,20 +110,30 @@ class ConfirmationPage(BasePage):
             self.logger.error(f"Failed to get order number: {str(e)}")
 
     def get_order_status(self):
-        if self.find_element(ConfirmationPageLocators.CONFIRMATION_MESSAGE).is_displayed():
-            text = self.get_text(ConfirmationPageLocators.CONFIRMATION_MESSAGE)
-            if "Successful" in text:
-                return True
+        try:
+            element = self.find_element(ConfirmationPageLocators.CONFIRMATION_MESSAGE)
+            if element.is_displayed():
+                text = self.get_text(ConfirmationPageLocators.CONFIRMATION_MESSAGE)
+                if "Successful" in text:
+                    return True
+        except Exception:
+            pass
+
+        self.attach_screenshot("Confirmation Page Issue")
         return False
 
-    def send_and_verify_email_receipt(self, expected_check_number, expected_total, test_name="Checkout Test"):
+    def send_and_verify_email_receipt(self, expected_check_number, expected_total, test_name="Checkout Test",
+                                      table_number=None):  # ✅ Added table_number parameter
 
         self.logger.info("=" * 60)
         self.logger.info("EMAIL RECEIPT VERIFICATION")
         self.logger.info("=" * 60)
 
         with allure.step("Generate test email address"):
-            self.test_email, inbox_id = self.email_service.get_test_email(test_name=test_name)
+            self.test_email, inbox_id = self.email_service.get_test_email(
+                test_name=test_name,
+                table_number=table_number  # ✅ Pass table_number
+            )
             allure.attach(
                 self.test_email,
                 name="📧 Test Email Address",
@@ -157,7 +167,6 @@ class ConfirmationPage(BasePage):
 
         with allure.step("Wait for email to arrive"):
             email_data = self.email_service.wait_for_email(
-                inbox_id=inbox_id,
                 subject_contains=None,
                 timeout=90
             )
