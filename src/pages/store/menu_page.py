@@ -23,9 +23,7 @@ class MenuPage(BasePage):
     def navigate_to_main_menu(self):
         try:
             self.logger.info("Starting navigation to main menu")
-            if self.is_element_present(MenuPageLocators.INITIAL_BUTTON,timeout=2):
-                time.sleep(1)
-                # self.driver.refresh()
+            if self.is_element_present(MenuPageLocators.INITIAL_BUTTON,timeout=2, initial_delay=1):
                 self.click(MenuPageLocators.INITIAL_BUTTON)
             self.logger.info("Successfully navigated to main menu")
             while not self.find_elements(MenuPageLocators.MENU_ITEMS):

@@ -14,7 +14,7 @@ from src.data.endpoints.combined import DigitalOrderAPI, set_current_api
 from src.utils.navigation import Navigation
 from src.data.table_config import DEFAULT_TABLE_NUMBER
 from src.utils.console_monitor import ConsoleMonitor
-from src.utils.network_tracker import NetworkTracker  # ← NEW: Import network tracker
+from src.utils.network_tracker import NetworkTracker
 import inspect
 import shutil
 import os
@@ -73,7 +73,7 @@ def endpoint_setup(table):
 def browser_factory(endpoint_setup):
     drivers = []
     temp_dirs = []
-    trackers = []  # ← NEW: Track network trackers
+    trackers = []
     api_setup = endpoint_setup
 
     def _create_browsers(*browser_types):
@@ -95,42 +95,49 @@ def browser_factory(endpoint_setup):
                 options.add_argument(f"--user-data-dir={temp_dir}")
                 temp_dirs.append(temp_dir)
 
-                # ← NEW: Enable performance logging for network tracking
                 options.set_capability("goog:loggingPrefs", {
                     "browser": "ALL",
-                    "performance": "ALL"  # ← NEW: Add performance logs
+                    "performance": "ALL"
                 })
 
                 service = ChromeService(ChromeDriverManager().install())
                 driver = webdriver.Chrome(service=service, options=options)
 
+
             elif browser_type.lower() == "edge":
+
                 options = webdriver.EdgeOptions()
+
                 options.add_argument("--disable-blink-features=AutomationControlled")
 
                 temp_dir = f"/tmp/edge_test_{id(options)}"
+
                 options.add_argument(f"--user-data-dir={temp_dir}")
+
                 temp_dirs.append(temp_dir)
 
                 options.add_experimental_option("excludeSwitches", ["enable-automation"])
+
                 options.add_experimental_option('useAutomationExtension', False)
 
-                # ← NEW: Enable performance logging
+
                 options.set_capability("goog:loggingPrefs", {
+
                     "browser": "ALL",
-                    "performance": "ALL"  # ← NEW: Add performance logs
+
+                    "performance": "ALL"
+
                 })
 
                 service = EdgeService(EdgeChromiumDriverManager().install())
+
                 driver = webdriver.Edge(service=service, options=options)
 
             else:
                 raise ValueError(f"Unsupported browser type: {browser_type}")
 
-            # Navigate to table URL
             Navigation.navigate(driver, api_setup.session_id, api_setup.table_num)
 
-            # ← NEW: Create network tracker for this driver
             tracker = NetworkTracker(driver)
             trackers.append(tracker)
 
@@ -140,11 +147,8 @@ def browser_factory(endpoint_setup):
 
     yield _create_browsers
 
-    # ========================================================================
-    # TEARDOWN: Network capture, Console check, quit drivers, cleanup
-    # ========================================================================
 
-    # ← NEW: 1. CAPTURE NETWORK PERFORMANCE FIRST
+
     for tracker in trackers:
         try:
             print(f"\n{'=' * 60}")
@@ -157,7 +161,6 @@ def browser_factory(endpoint_setup):
         except Exception as e:
             print(f"⚠️ Failed to capture network performance: {e}")
 
-    # 2. CONSOLE CHECK (Your existing code - unchanged)
     for drv in drivers:
         try:
             with allure.step("🔍 Automatic Console Safety Check"):
@@ -165,12 +168,11 @@ def browser_factory(endpoint_setup):
                 results = monitor.check_all()
                 monitor.report_to_allure()
 
-                # Report benign errors (informational only, don't fail)
                 if results.get('has_benign_issues', False):
                     benign_summary = f"⚠️ BENIGN NETWORK ISSUES (Informational)\n"
                     benign_summary += f"Network Errors: {len(results.get('benign_errors', []))}\n\n"
 
-                    # List first 5 benign errors
+
                     for i, error in enumerate(results.get('benign_errors', [])[:5], 1):
                         msg = error.get('message', 'Unknown')[:150]
                         benign_summary += f"{i}. {msg}...\n"
@@ -186,7 +188,6 @@ def browser_factory(endpoint_setup):
 
                     print(f"⚠️ {len(results['benign_errors'])} benign network errors detected (not failing test)")
 
-                # Only fail on CRITICAL issues
                 if results['has_issues']:
                     critical_summary = f"❌ CRITICAL CONSOLE ISSUES\n"
                     critical_summary += f"Critical Errors: {len(results['errors'])}\n"
@@ -204,7 +205,7 @@ def browser_factory(endpoint_setup):
                         f"{len(results['pii_violations'])} PII violations"
                     )
                 else:
-                    # No critical issues
+
                     if results.get('has_benign_issues', False):
                         status = f"✅ No critical issues ({len(results['benign_errors'])} benign network errors logged)"
                     else:
@@ -219,14 +220,12 @@ def browser_factory(endpoint_setup):
         except Exception as e:
             print(f"Warning: Could not perform console check: {str(e)}")
 
-    # 3. QUIT DRIVERS (Your existing code - unchanged)
     for drv in drivers:
         try:
             drv.quit()
         except Exception as e:
             print(f"Error closing browser: {str(e)}")
 
-    # 4. CLEANUP TEMP DIRECTORIES (Your existing code - unchanged)
     print(f"\n{'=' * 60}")
     print(f"CLEANUP: Removing temporary browser profiles")
     print(f"{'=' * 60}")

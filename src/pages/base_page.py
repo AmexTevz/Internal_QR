@@ -354,18 +354,23 @@ class BasePage:
             logging.error(f"Element not visible after {timeout}s: {locator}")
             raise  # Re-raise for calling code to handle
 
-    def is_element_present(self, locator: Tuple[str, str], timeout: int = 2) -> bool:
+    def is_element_present(self, locator: Tuple[str, str], timeout: int = 2, initial_delay: float = 0) -> bool:
         """
         Check if element is present and visible within timeout period
 
         Args:
             locator: Element locator tuple
-            timeout: Maximum time to wait (default 10 seconds)
+            timeout: Maximum time to wait (default 2 seconds)
+            initial_delay: Delay before starting to check (default 0 seconds)
 
         Returns:
             True if element becomes visible within timeout, False otherwise
         """
         try:
+            # ✅ Wait before starting to look
+            if initial_delay > 0:
+                time.sleep(initial_delay)
+
             wait = WebDriverWait(self.driver, timeout, poll_frequency=0.5)
             wait.until(EC.visibility_of_element_located(locator))
             return True
@@ -373,16 +378,6 @@ class BasePage:
             return False
         except Exception:
             return False
-
-    def wait_for_element_with_text(self, locator, timeout=3):
-        return WebDriverWait(self.driver, timeout, poll_frequency=0.2).until(
-            lambda d: (
-                    (el := d.find_element(*locator))
-                    and el.text
-                    and el.text.strip()
-                    and el
-            )
-        )
 
     def get_elements_alt(self, *locators: Tuple[str, str]) -> List[WebElement]:
         for locator in locators:
